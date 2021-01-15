@@ -102,7 +102,8 @@ def run_summary(output_dir):
         summary_df = pickle.load(file)
     summary_df = df_eval(df=summary_df)
     metric_list = ['rmse_total', 't_valid_050', 't_valid_005']
-    summarize_eps(df=summary_df, style='type', hue='usef0', output_dir=output_dir, metric_list=metric_list)
+    plot_output_dir = os.path.join(output_dir, 'summary_plots')
+    summarize_eps(df=summary_df, style='type', hue='usef0', output_dir=plot_output_dir, metric_list=metric_list)
 
 
 if __name__ == '__main__':
