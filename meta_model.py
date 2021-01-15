@@ -575,13 +575,13 @@ class continuousInterp(object):
 		print("Total training time is {:2.2f} minutes".format(self.total_training_time/60))
 
 		# print("MEMORY TRACKING IN MB...")
-		process = psutil.Process(os.getpid())
-		memory = process.memory_info().rss/1024/1024
-		self.memory = memory
-		print("Script used {:} MB".format(self.memory))
+		# process = psutil.Process(os.getpid())
+		# memory = process.memory_info().rss/1024/1024
+		# self.memory = memory
+		# print("Script used {:} MB".format(self.memory))
 
 		data = {
-		"memory":self.memory,
+		# "memory":self.memory,
 		"n_trainable_parameters":self.n_trainable_parameters,
 		"n_model_parameters":self.n_model_parameters,
 		"total_training_time":self.total_training_time,
