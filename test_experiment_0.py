@@ -11,9 +11,11 @@ import argparse
 # CMD_generate_data_wrapper = 'python3 $HOME/mechRNN/experiments/scripts/generate_data_wrapper.py'
 parser = argparse.ArgumentParser()
 parser.add_argument('--mode', default='all', type=str)
+parser.add_argument('--datagen', default=1, type=int)
 parser.add_argument('--cmd_py', default='python3 main.py', type=str)
 parser.add_argument('--output_dir', default='experiments/debugging2/', type=str)
 parser.add_argument('--cmd_job', default='bash', type=str)
+parser.
 FLAGS = parser.parse_args()
 
 
@@ -37,7 +39,8 @@ def main(cmd_py, output_dir, cmd_job, **kwargs):
                         'data_pathname': data_pathname
             		}
 
-    generate_data(ode=L63(), **datagen_settings)
+    if datagen:
+        generate_data(ode=L63(), **datagen_settings)
 
     shared_settings = {'data_pathname': data_pathname,
                         'f0_name': 'L63',
