@@ -10,13 +10,14 @@ import argparse
 
 # CMD_generate_data_wrapper = 'python3 $HOME/mechRNN/experiments/scripts/generate_data_wrapper.py'
 parser = argparse.ArgumentParser()
+parser.add_argument('--mode', default='all', type=str)
 parser.add_argument('--cmd_py', default='python3 main.py', type=str)
 parser.add_argument('--output_dir', default='experiments/debugging2/', type=str)
 parser.add_argument('--cmd_job', default='bash', type=str)
 FLAGS = parser.parse_args()
 
 
-def main(cmd_py, output_dir, cmd_job):
+def main(cmd_py, output_dir, cmd_job, **kwargs):
 
     os.makedirs(output_dir, exist_ok=True)
 
@@ -73,10 +74,7 @@ def main(cmd_py, output_dir, cmd_job):
         submit_job(job_fname, bash_command=cmd_job)
 
     if cmd_job=='bash':
-        summary_df = df_eval(df=summary_df)
-        metric_list = ['rmse_total', 'num_accurate_pred_050', 'num_accurate_pred_005']
-        summarize_eps(df=summary_df, style='type', hue='usef0', output_dir=output_dir, metric_list=metric_list)
-
+        run_summary(output_dir)
 
 def init_summary_df(combined_settings, all_job_fnames):
     summary_df = pd.DataFrame()
@@ -96,8 +94,20 @@ def init_summary_df(combined_settings, all_job_fnames):
     summary_df = pd.concat([summary_df.loc[summary_df.usef0==1.0], f0_df], sort=False)
     return summary_df
 
+def run_summary(output_dir):
+    summary_df_name = os.path.join(output_dir, 'summary_df.pickle')
+    with open(summary_df_name, "wb") as file:
+        pickle.dump(summary_df, file, pickle.HIGHEST_PROTOCOL)
+    summary_df = df_eval(df=summary_df)
+    metric_list = ['rmse_total', 'num_accurate_pred_050', 'num_accurate_pred_005']
+    summarize_eps(df=summary_df, style='type', hue='usef0', output_dir=output_dir, metric_list=metric_list)
+
+
 if __name__ == '__main__':
-    main(**FLAGS.__dict__)
+    if FLAGS.mode=='all':
+        main(**FLAGS.__dict__)
+    elif FLAGS.mode=='plot':
+        run_summary(output_dir=FLAGS.output_dir)
 
 # def build_job(settings, settings_path, submit_job, fake=True):
 #     command_flag_dict = {'settings_path': settings_path}
