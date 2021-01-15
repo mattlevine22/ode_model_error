@@ -98,7 +98,7 @@ def replaceNaN(data):
 	data[np.isnan(data)]=float('Inf')
 	return data
 
-def computeErrors(target, prediction, std):
+def computeErrors(target, prediction, std, dt):
 	prediction = replaceNaN(prediction)
 	# ABSOLUTE ERROR
 	abserror = np.mean(np.abs(target-prediction), axis=1)
@@ -119,9 +119,12 @@ def computeErrors(target, prediction, std):
 	num_accurate_pred_005 = getNumberOfAccuratePredictions(rmnse, 0.05)
 	num_accurate_pred_050 = getNumberOfAccuratePredictions(rmnse, 0.5)
 
+	t_valid_005 = dt*num_accurate_pred_005
+	t_valid_050 = dt*num_accurate_pred_050
+
 	eval_dict = {}
 	# for var_name in ['rmse_total', 'rmse', 'rmnse', 'num_accurate_pred_005', 'num_accurate_pred_050', 'abserror']:
-	for var_name in ['rmse_total', 'num_accurate_pred_005', 'num_accurate_pred_050']:
+	for var_name in ['rmse_total', 't_valid_005', 't_valid_050']:
 		exec("eval_dict['{key}'] = {val}".format(key=var_name, val=var_name))
 	return eval_dict
 
