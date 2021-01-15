@@ -1,0 +1,19 @@
+{
+  "regularization_RF": 0.0,
+  "scaler": "Standard",
+  "scaler_derivatives": "no",
+  "noise_level": 0,
+  "component_wise": 0,
+  "rf_Win_bound": 0.005,
+  "rf_bias_bound": 4,
+  "rf_dim": 200,
+  "dt_fast_frac": 1,
+  "test_integrator": "RK45",
+  "rf_error_input": 0,
+  "ZY": "old",
+  "model_dir": "/Trained_Models/",
+  "fig_dir": "/Figures/",
+  "results_dir": "/Evaluation_Data/",
+  "logfile_dir": "/Logfiles/",
+  "rng_seed": 0
+}
