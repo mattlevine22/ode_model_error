@@ -19,7 +19,7 @@ import pandas as pd
 hostname = socket.gethostname()
 print("PLOTTING HOSTNAME: {:}".format(hostname))
 CLUSTER = True if ((hostname[:2]=='eu')  or (hostname[:5]=='daint') or (hostname[:3]=='nid')) else False
-if CLUSTER: matplotlib.use("Agg")
+matplotlib.use("Agg")
 
 import seaborn as sns
 import matplotlib.pyplot as plt
