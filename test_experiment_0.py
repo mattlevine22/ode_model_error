@@ -54,12 +54,12 @@ def main(cmd_py, output_dir, cmd_job):
                  'f0eps': [0.001, 0.01, 0.05, 0.1, 0.2],
                  'trainNumber': [i for i in range(datagen_settings['n_train_traj'])]
                 }
-    job_fname_list1 = queue_joblist(combined_settings=combined_settings, shared_settings=shared_settings, output_dir=output_dir, master_job_file=master_job_file, cmd=CMD_run_main)
+    job_fname_list1 = queue_joblist(combined_settings=combined_settings, shared_settings=shared_settings, output_dir=output_dir, master_job_file=master_job_file, cmd=cmd_py)
 
     ## DATA-ONLY RUN
     combined_settings['usef0'] = [0]
     combined_settings['f0eps'] = ['NA']
-    job_fname_list2 = queue_joblist(combined_settings=combined_settings, shared_settings=shared_settings, output_dir=output_dir, master_job_file=master_job_file, cmd=CMD_run_main)
+    job_fname_list2 = queue_joblist(combined_settings=combined_settings, shared_settings=shared_settings, output_dir=output_dir, master_job_file=master_job_file, cmd=cmd_py)
 
     all_job_fnames = job_fname_list1 + job_fname_list2
 
