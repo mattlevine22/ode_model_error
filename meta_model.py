@@ -8,7 +8,7 @@ from scipy.linalg import pinv2 as scipypinv2
 from scipy.linalg import block_diag
 from scipy.integrate import solve_ivp, trapz
 from scipy.interpolate import CubicSpline
-from scipy.stats import loguniform
+# from scipy.stats import loguniform
 from esn_plotting_utils import *
 from esn_global_utils import *
 import time
