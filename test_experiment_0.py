@@ -96,8 +96,8 @@ def init_summary_df(combined_settings, all_job_fnames):
 
 def run_summary(output_dir):
     summary_df_name = os.path.join(output_dir, 'summary_df.pickle')
-    with open(summary_df_name, "wb") as file:
-        pickle.dump(summary_df, file, pickle.HIGHEST_PROTOCOL)
+    with open(summary_df_name, "rb") as file:
+        summary_df = pickle.load(file)
     summary_df = df_eval(df=summary_df)
     metric_list = ['rmse_total', 'num_accurate_pred_050', 'num_accurate_pred_005']
     summarize_eps(df=summary_df, style='type', hue='usef0', output_dir=output_dir, metric_list=metric_list)
