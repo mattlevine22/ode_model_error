@@ -18,7 +18,7 @@ parser.add_argument('--cmd_job', default='bash', type=str)
 FLAGS = parser.parse_args()
 
 
-def main(cmd_py, output_dir, cmd_job, **kwargs):
+def main(cmd_py, output_dir, cmd_job, datagen, **kwargs):
 
     os.makedirs(output_dir, exist_ok=True)
 
