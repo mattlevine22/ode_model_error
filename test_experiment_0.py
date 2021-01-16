@@ -47,24 +47,31 @@ def main(cmd_py, output_dir, cmd_job, datagen, **kwargs):
                         't_train': 100,
                         't_test': 20}
 
-    ## HYBRID PHYSICS RUN
+    ## HYBRID PHYSICS RUNS
     # combined_settings = { 'modelType': ['continuousInterp', 'continuousFD', 'discrete'],
      # 'stateType': ['state', 'pred', 'stateAndPred'],
-    combined_settings = { 'modelType': ['continuousInterp'],
+    combined_settings = { 'modelType': ['discrete', 'continuousInterp'],
                  'usef0': [1],
-                 'stateType': ['state'],
-                 'dt': [0.01],
+                 'doResidual': [1],
+                 'stateType': ['state', 'stateAndPred'],
+                 'dt': [0.05],
                  'f0eps': [0.001, 0.01, 0.05, 0.1, 0.2],
                  'trainNumber': [i for i in range(datagen_settings['n_train_traj'])]
                 }
     job_fname_list1 = queue_joblist(combined_settings=combined_settings, shared_settings=shared_settings, output_dir=output_dir, master_job_file=master_job_file, cmd=cmd_py)
 
-    ## DATA-ONLY RUN
-    combined_settings['usef0'] = [0]
-    combined_settings['f0eps'] = ['NA']
+    combined_settings['doResidual'] = [0]
+    combined_settings['stateType'] = ['stateAndPred']
     job_fname_list2 = queue_joblist(combined_settings=combined_settings, shared_settings=shared_settings, output_dir=output_dir, master_job_file=master_job_file, cmd=cmd_py)
 
-    all_job_fnames = job_fname_list1 + job_fname_list2
+
+    ## DATA-ONLY RUN
+    combined_settings['usef0'] = [0]
+    combined_settings['stateType'] = ['state']
+    combined_settings['f0eps'] = ['NA']
+    job_fname_list3 = queue_joblist(combined_settings=combined_settings, shared_settings=shared_settings, output_dir=output_dir, master_job_file=master_job_file, cmd=cmd_py)
+
+    all_job_fnames = job_fname_list1 + job_fname_list2 + job_fname_list3
 
     # collect job dirs and enumerate their properties
     summary_df = init_summary_df(combined_settings, all_job_fnames)
@@ -86,7 +93,7 @@ def init_summary_df(combined_settings, all_job_fnames):
         # determine the value of each my_var
         var_dict = parse_output_path(job_dir, nm_list=my_vars)
         var_dict['eval_pickle_fname'] = os.path.join(job_dir, 'test_eval.pickle')
-        var_dict['type'] = '{}, {}'.format(var_dict['modelType'] , var_dict['stateType'])
+        var_dict['type'] = '{}, {}, resid={}'.format(var_dict['modelType'] , var_dict['stateType'], var_dict['doResidual'])
         summary_df = summary_df.append(var_dict, ignore_index=True)
     # add epsilons
     new_df = pd.DataFrame()

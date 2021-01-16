@@ -16,12 +16,12 @@ FLAGS = parser.parse_args()
 def main():
     settings = get_settings(settings_path=FLAGS.settings_path)
 
-    classname = settings['modelType']
+    # classname = settings['modelType']
 
     # instantiate model class with specific run settings
     # https://stackoverflow.com/questions/3451779/how-to-dynamically-create-an-instance-of-a-class-in-python
-    Model = globals()[classname]
-    model = Model(settings=settings)
+    # Model = globals()[classname]
+    model = IDK(settings=settings)
 
     # train the model
     model.train()

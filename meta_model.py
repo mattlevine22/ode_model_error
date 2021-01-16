@@ -28,7 +28,7 @@ import pandas as pd
 
 import pdb
 
-class continuousInterp(object):
+class IDK(object):
 	def __init__(self, settings, default_esn_settings='./Config/esn_default_params.json'):
 		# load default settings
 		params = file_to_dict(default_esn_settings)
@@ -38,6 +38,8 @@ class continuousInterp(object):
 
 		# initialize
 		## new properties
+		self.modelType = params["modelType"]
+		self.stateType = params["stateType"]
 		self.trainNumber = params["trainNumber"]
 		self.dt = params["dt"]
 		self.t_train = params["t_train"]
@@ -73,13 +75,20 @@ class continuousInterp(object):
 		self.ZY = params["ZY"]
 
 		####### Add physical mechanistic rhs "f0" ##########
+		if self.stateType=='state':
+			self.rf_error_input = 0
+		elif self.stateType=='stateAndPred':
+			self.rf_error_input = 1
+		else:
+			raise ValueError('stateType unrecognized')
+
+		self.doResidual = params["doResidual"]
 		self.usef0 = params["usef0"]
 		if self.usef0:
-			self.rf_error_input = 0 #params["rf_error_input"] #THIS doesnt work yet
 			self.f0 = params["f0"]
 		else:
 			self.f0 = 0
-			self.rf_error_input = 0
+
 		# count the augmented input dimensions (i.e. [x(t); f0(x(t))-x(t)])
 		if self.component_wise:
 			self.input_dim_rf = 1 + self.rf_error_input
@@ -117,21 +126,54 @@ class continuousInterp(object):
 		# TRAINING LENGTH
 		tl = train_input_sequence.shape[0] - self.dynamics_length
 
-		# Gather training info
-		self.newMethod(tl=tl, dynamics_length=self.dynamics_length, train_input_sequence=train_input_sequence)
+		# Do the learning!
+		self.learn(tl=tl, dynamics_length=self.dynamics_length, train_input_sequence=train_input_sequence)
 
-		# alternative method for solving!!!
-		self.doNewSolving()
-
-		# Store something useful for plotting
-		self.first_train_vec = train_input_sequence[(self.dynamics_length+1),:]
-
-		# print("COMPUTING PARAMETERS...")
 		self.saveModel()
 
 		# output training statistics
 		self.write_training_stats()
 
+	def learn(self, tl, dynamics_length, train_input_sequence):
+		if self.modelType=='continuousInterp':
+			# Gather training info
+			self.newMethod(tl=tl, dynamics_length=self.dynamics_length, train_input_sequence=train_input_sequence)
+			# alternative method for solving!!!
+			self.doNewSolving()
+		elif self.modelType=='discrete':
+			Z = np.zeros((self.rf_dim, self.rf_dim))
+			Y = np.zeros((self.rf_dim, self.input_dim))
+			if self.component_wise:
+				raise ValueError('component wise not yet set up for discrete')
+			x_input = train_input_sequence[:-1]
+			rf = np.zeros((x_input.shape[0], self.rf_dim))
+			predf0 = np.zeros(x_input.shape)
+			# predf0 = np.array([self.predict_next(x_input[i], f0_only=True) for i in range(x_input.shape[0])])
+			for i in range(x_input.shape[0]):
+				if self.usef0:
+					pred = self.predict_next(x_input[i], psi0_only=True)
+					predf0[i] = pred
+				if self.rf_error_input:
+					rf_input = np.hstack((x_input[i],pred))
+				else:
+					rf_input = x_input[i]
+				q_i = self.q_t(rf_input)
+				rf[i] = q_i
+
+				if self.doResidual:
+					foo = train_input_sequence[i+1] - pred
+				else:
+					foo = train_input_sequence[i+1]
+
+				Z += np.outer(q_i, q_i)
+				Y += np.outer(q_i, foo)
+			self.Z = Z / x_input.shape[0]
+			self.Y = Y / x_input.shape[0]
+			self.reg_dim = self.Z.shape[0]
+			self.doNewSolving()
+
+		# Store something useful for plotting
+		# self.first_train_vec = train_input_sequence[(self.dynamics_length+1),:]
 
 	def test(self):
 		# self.testingOnTrainingSet()
@@ -181,47 +223,75 @@ class continuousInterp(object):
 		prediction = np.array(prediction)
 		return prediction
 
-	def predict_next(self, x_input, t0=0):
-		solver = self.test_integrator
-		u0 = np.copy(x_input)
-		if solver=='Euler':
-			rhs = self.rhs(t0, u0)
-			u_next = u0 + self.dt * rhs
-		elif solver=='Euler_fast':
-			dt_fast = self.dt_fast_frac * self.dt
-			t_end = t0 + self.dt
-			t = np.float(t0)
-			u_next = np.copy(u0)
-			while t < t_end:
-				rhs = self.rhs(t, u_next)
-				u_next += dt_fast * rhs
-				t += dt_fast
-		elif solver=='RK45':
-			t_span = [t0, t0+self.dt]
-			t_eval = np.array([t0+self.dt])
-			sol = solve_ivp(fun=lambda t, y: self.rhs(t, y), t_span=t_span, y0=u0, t_eval=t_eval, max_step=self.dt/10)
-			u_next = sol.y
-		return np.squeeze(u_next)
+
+	def predict_next(self, x_input, t0=0, psi0_only=False):
+		if psi0_only or self.modelType=='discrete':
+			f_rhs = self.f0
+		elif self.modelType=='continuousInterp':
+			f_rhs = self.rhs
+
+		if self.usef0 or self.modelType=='continuousInterp':
+			solver = self.test_integrator
+			u0 = np.copy(x_input)
+			if solver=='Euler':
+				rhs = f_rhs(t0, u0)
+				u_next = u0 + self.dt * rhs
+			elif solver=='Euler_fast':
+				dt_fast = self.dt_fast_frac * self.dt
+				t_end = t0 + self.dt
+				t = np.float(t0)
+				u_next = np.copy(u0)
+				while t < t_end:
+					rhs = f_rhs(t, u_next)
+					u_next += dt_fast * rhs
+					t += dt_fast
+			elif solver=='RK45':
+				t_span = [t0, t0+self.dt]
+				t_eval = np.array([t0+self.dt])
+				sol = solve_ivp(fun=lambda t, y: f_rhs(t, y), t_span=t_span, y0=u0, t_eval=t_eval, max_step=self.dt/10)
+				u_next = sol.y
+
+			u_next = np.squeeze(u_next)
+		else:
+			u_next = np.zeros(self.input_dim)
+
+		if (not psi0_only) and self.modelType=='discrete':
+			if self.rf_error_input:
+				rf_input = np.hstack((x_input, u_next))
+			else:
+				rf_input = x_input
+			u_next += self.W_out_markov @ self.q_t(rf_input)
+
+		return u_next
 
 	def rhs(self, t0, u0):
 		#u0 is in normalized coordinates but dx is in UNnormalized coordinates
 		x_input = u0[:self.input_dim]
 
-		f_error_markov = np.zeros(self.input_dim)
-		if self.component_wise:
-			for k in range(self.input_dim):
-				f_error_markov[k] = self.W_out_markov @ self.q_t(x_input[k,None])
-		else:
-			f_error_markov = self.W_out_markov @ self.q_t(x_input)
-
 		# add mechanistic rhs
 		if self.usef0:
 			f0 = self.scaler.scaleXdot(self.f0(t0, self.scaler.descaleData(x_input)))
+
+		f_error_markov = np.zeros(self.input_dim)
+		if self.component_wise:
+			for k in range(self.input_dim):
+				if self.rf_error_input:
+					rf_input = np.hstack((x_input[k,None], f0[k,None]))
+				else:
+					rf_input = x_input[k,None]
+				f_error_markov[k] = self.W_out_markov @ self.q_t(rf_input)
 		else:
-			f0 = 0
+			if self.rf_error_input:
+				rf_input = np.hstack((x_input, f0))
+			else:
+				rf_input = x_input
+			f_error_markov = self.W_out_markov @ self.q_t(rf_input)
 
 		# total rhs for x
-		dx = f0 + self.scaler.descaleM(f_error_markov)
+		if self.doResidual:
+			dx = f0 + self.scaler.descaleM(f_error_markov)
+		else:
+			dx = self.scaler.descaleM(f_error_markov)
 
 		return dx
 
@@ -261,7 +331,7 @@ class continuousInterp(object):
 				self.b_h_markov = data["b_h_markov"]
 				self.W_out_markov = data["W_out_markov"]
 				self.scaler = data["scaler"]
-				self.first_train_vec = data["first_train_vec"]
+				# self.first_train_vec = data["first_train_vec"]
 			return 0
 		except:
 			print("MODEL {:s} NOT FOUND.".format(data_path))
@@ -334,7 +404,7 @@ class continuousInterp(object):
 
 	def mscaled(self, t, x, xdot):
 		'''Assume that x, xdot are both in normalized coordinates'''
-		if self.usef0:
+		if self.doResidual:
 			m = xdot - self.scaler.scaleXdot(self.f0(t, self.scaler.descaleData(x)))
 		else:
 			m = xdot
@@ -424,7 +494,7 @@ class continuousInterp(object):
 		xdot0 = np.array([self.xdot_spline[k](0) for k in range(self.input_dim)]).T
 		xdot0_raw = np.array([self.xdot_spline_raw[k](0) for k in range(self.input_dim)]).T
 
-		if self.usef0:
+		if self.doResidual:
 			f0_vec = np.array([self.f0(0, x) for x in self.scaler.descaleData(self.x_vec)])
 			# xdot(t) = f0(x(t)) + m(t)
 			# so, m(t) = xdot(t) - f0(x(t))
@@ -589,7 +659,7 @@ class continuousInterp(object):
 		"b_h_markov":self.b_h_markov,
 		"W_out_markov":self.W_out_markov,
 		"scaler":self.scaler,
-		"first_train_vec": self.first_train_vec
+		# "first_train_vec": self.first_train_vec
 		}
 		data_path = self.saving_path + self.model_dir + "/data.pickle"
 		with open(data_path, "wb") as file:
