@@ -45,6 +45,10 @@ class IDK(object):
 		self.t_train = params["t_train"]
 		self.t_test = params["t_test"]
 
+		self.f0only = 0
+		if self.modelType=='f0only':
+			self.f0only = 1
+
 		## set paths
 		self.train_data_path = params["train_data_path"]
 		self.test_data_path = params["test_data_path"]
@@ -108,6 +112,10 @@ class IDK(object):
 	def train(self):
 		# if self.dont_redo and os.path.exists(self.saving_path + self.model_dir + "/data.pickle"):
 		# 	raise ValueError('Model has already run for this configuration. Exiting with an error.')
+
+		if self.f0only:
+			return
+
 		self.start_time = time.time()
 
 		## DATA
@@ -225,7 +233,7 @@ class IDK(object):
 
 
 	def predict_next(self, x_input, t0=0, psi0_only=False):
-		if psi0_only or self.modelType=='discrete':
+		if psi0_only or self.modelType=='discrete' or self.modelType=='f0only':
 			f_rhs = self.f0
 		elif self.modelType=='continuousInterp':
 			f_rhs = self.rhs
