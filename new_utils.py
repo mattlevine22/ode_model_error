@@ -158,7 +158,7 @@ def parse_output_path(pathname, nm_list):
         except:
             pdb.set_trace()
         try:
-            if float(val)==int(val)
+            if float(val)==int(val):
                 val = int(val)
             else:
                 val = float(val)
