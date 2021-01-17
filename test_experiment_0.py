@@ -107,15 +107,16 @@ def init_summary_df(combined_settings, all_job_fnames):
     # add epsilons
     new_df = pd.DataFrame()
     new_df['f0eps'] = [e for e in summary_df.f0eps.unique() if isinstance(e, float)]
-    new_df['usef0'] = 0.0
-    f0_df = pd.merge(summary_df.loc[summary_df.usef0==0.0, summary_df.columns != 'f0eps'], new_df, on='usef0', how='left')
-    summary_df = pd.concat([summary_df.loc[summary_df.usef0==1.0], f0_df], sort=False)
+    new_df['usef0'] = 0
+    f0_df = pd.merge(summary_df.loc[summary_df.usef0==0, summary_df.columns != 'f0eps'], new_df, on='usef0', how='left')
+    summary_df = pd.concat([summary_df.loc[summary_df.usef0==1], f0_df], sort=False)
     return summary_df
 
 def run_summary(output_dir):
     summary_df_name = os.path.join(output_dir, 'summary_df.pickle')
     with open(summary_df_name, "rb") as file:
         summary_df = pickle.load(file)
+    pdb.set_trace()
     summary_df = df_eval(df=summary_df)
     metric_list = ['rmse_total', 't_valid_050', 't_valid_005']
     for dt in summary_df.dt.unique():
