@@ -72,8 +72,9 @@ def main(cmd_py, output_dir, cmd_job, datagen, **kwargs):
 
     ## DATA-ONLY RUN
     combined_settings['usef0'] = [0]
-    combined_settings['stateType'] = ['state']
     combined_settings['f0eps'] = ['NA']
+    combined_settings['stateType'] = ['state']
+    combined_settings['modelType'] = ['discrete', 'continuousInterp']
     all_job_fnames += queue_joblist(combined_settings=combined_settings, shared_settings=shared_settings, output_dir=output_dir, master_job_file=master_job_file, cmd=cmd_py)
 
     # collect job dirs and enumerate their properties
