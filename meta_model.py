@@ -113,9 +113,6 @@ class IDK(object):
 		# if self.dont_redo and os.path.exists(self.saving_path + self.model_dir + "/data.pickle"):
 		# 	raise ValueError('Model has already run for this configuration. Exiting with an error.')
 
-		if self.f0only:
-			return
-
 		self.start_time = time.time()
 
 		## DATA
@@ -127,6 +124,10 @@ class IDK(object):
 			del data
 		# scale training data
 		train_input_sequence = self.scaler.scaleData(train_input_sequence)
+
+		if self.f0only:
+			# need to normalize first to store statistics
+			return
 
 		## Random WEIGHTS
 		self.set_random_weights()
