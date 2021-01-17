@@ -13,7 +13,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--mode', default='all', type=str)
 parser.add_argument('--datagen', default=1, type=int)
 parser.add_argument('--cmd_py', default='python3 main.py', type=str)
-parser.add_argument('--output_dir', default='experiments/debugging4/', type=str)
+parser.add_argument('--output_dir', default='experiments/debugging5/', type=str)
 parser.add_argument('--cmd_job', default='bash', type=str)
 FLAGS = parser.parse_args()
 
@@ -46,11 +46,11 @@ def main(cmd_py, output_dir, cmd_job, datagen, **kwargs):
     shared_settings = {'data_pathname': data_pathname,
                         'f0_name': 'L63',
                         'input_dim': 3,
-                        't_train': 100,
                         't_test': 20}
 
     ## HYBRID PHYSICS RUNS
     combined_settings = { 'modelType': ['discrete', 'continuousInterp'],
+                 't_train': [100, 1000],
                  'usef0': [1],
                  'doResidual': [1],
                  'stateType': ['state', 'stateAndPred'],
@@ -118,9 +118,10 @@ def run_summary(output_dir):
     summary_df = df_eval(df=summary_df)
     metric_list = ['rmse_total', 't_valid_050', 't_valid_005']
     for dt in summary_df.dt.unique():
-        plot_output_dir = os.path.join(output_dir, 'summary_plots_dt{dt}'.format(dt=dt))
-        os.makedirs(plot_output_dir, exist_ok=True)
-        summarize_eps(df=summary_df[summary_df.dt==dt], style='usef0', hue='type', output_dir=plot_output_dir, metric_list=metric_list)
+        for t in summary_df.t_train.unique():
+            plot_output_dir = os.path.join(output_dir, 'summary_plots_dt{dt}_tTrain{t}'.format(dt=dt, t=t))
+            os.makedirs(plot_output_dir, exist_ok=True)
+            summarize_eps(df=summary_df[summary_df.dt==dt], style='usef0', hue='type', output_dir=plot_output_dir, metric_list=metric_list)
 
 
 if __name__ == '__main__':
