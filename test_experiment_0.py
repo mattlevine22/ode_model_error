@@ -123,7 +123,7 @@ def run_summary(output_dir):
             for rfd in summary_df.rfDim.unique():
                 plot_output_dir = os.path.join(output_dir, 'summary_plots_dt{dt}_tTrain{t}_rfdim{rfd}'.format(dt=dt, t=t, rfd=rfd))
                 os.makedirs(plot_output_dir, exist_ok=True)
-                summarize_eps(df=summary_df[(summary_df.dt==dt) & (summary_df.tTrain==t) & (summary_df.rfDim==rdf)], style='usef0', hue='type', output_dir=plot_output_dir, metric_list=metric_list)
+                summarize_eps(df=summary_df[(summary_df.dt==dt) & (summary_df.tTrain==t) & (summary_df.rfDim==rfd)], style='usef0', hue='type', output_dir=plot_output_dir, metric_list=metric_list)
 
 
 if __name__ == '__main__':
