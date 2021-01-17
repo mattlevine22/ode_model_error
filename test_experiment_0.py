@@ -118,7 +118,7 @@ def run_summary(output_dir):
     summary_df = df_eval(df=summary_df)
     metric_list = ['rmse_total', 't_valid_050', 't_valid_005']
     for dt in summary_df.dt.unique():
-        for t in summary_df.t_train.unique():
+        for t in summary_df.tTrain.unique():
             plot_output_dir = os.path.join(output_dir, 'summary_plots_dt{dt}_tTrain{t}'.format(dt=dt, t=t))
             os.makedirs(plot_output_dir, exist_ok=True)
             summarize_eps(df=summary_df[summary_df.dt==dt], style='usef0', hue='type', output_dir=plot_output_dir, metric_list=metric_list)
