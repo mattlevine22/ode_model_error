@@ -16,9 +16,6 @@ from scipy.sparse.linalg import eigs as sparse_eigs
 import pdb
 import matplotlib
 import pandas as pd
-hostname = socket.gethostname()
-print("PLOTTING HOSTNAME: {:}".format(hostname))
-CLUSTER = True if ((hostname[:2]=='eu')  or (hostname[:5]=='daint') or (hostname[:3]=='nid')) else False
 matplotlib.use("Agg")
 
 import seaborn as sns
