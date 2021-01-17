@@ -12,7 +12,7 @@ from new_utils import *
 import pdb
 
 
-def queue_joblist(combined_settings, shared_settings, output_dir, master_job_file, cmd):
+def queue_joblist(combined_settings, shared_settings, output_dir, master_job_file, cmd, conda_env=None):
     nm_list = combined_settings.keys()
     all_settings_list = dict_combiner(combined_settings)
 
@@ -30,7 +30,8 @@ def queue_joblist(combined_settings, shared_settings, output_dir, master_job_fil
         jobstatus, jobnum, jobfile_path = make_and_deploy(bash_run_command=cmd,
             command_flag_dict=command_flag_dict,
             jobfile_dir=jobfile_dir,
-            master_job_file=master_job_file, no_submit=True)
+            master_job_file=master_job_file, no_submit=True,
+            conda_env=conda_env)
 
         job_fname_list.append(jobfile_path)
     return job_fname_list
@@ -52,7 +53,7 @@ def make_and_deploy(bash_run_command='echo $HOME',
                     command_flag_dict={}, jobfile_dir='./my_jobs',
                     jobname='jobbie', depending_jobs=[], jobid_dir=None,
                     master_job_file=None, report_status=True, exclusive=True,
-                    hours=6, no_submit=False, use_gpu=False):
+                    hours=6, no_submit=False, use_gpu=False, conda_env=None):
 
     # build sbatch job script and write to file
     job_directory = jobfile_dir
@@ -77,6 +78,8 @@ def make_and_deploy(bash_run_command='echo $HOME',
     if use_gpu:
         sbatch_str += "#SBATCH --gres=gpu:1\n" # use a GPU for the computation
     sbatch_str += module_load_command
+    if conda_env:
+        sbatch_str += 'conda activate {}'.format(conda_env)
     sbatch_str += bash_run_command
     # sbatch_str += "python $HOME/mechRNN/experiments/scripts/run_fits.py"
     for key in command_flag_dict:

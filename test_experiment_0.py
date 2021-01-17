@@ -15,10 +15,11 @@ parser.add_argument('--datagen', default=1, type=int)
 parser.add_argument('--cmd_py', default='python3 main.py', type=str)
 parser.add_argument('--output_dir', default='experiments/debugging7/', type=str)
 parser.add_argument('--cmd_job', default='bash', type=str)
+parser.add_argument('--conda_env', default='vlachas', type=str)
 FLAGS = parser.parse_args()
 
 
-def main(cmd_py, output_dir, cmd_job, datagen, **kwargs):
+def main(cmd_py, output_dir, cmd_job, datagen, conda_env, **kwargs):
 
     all_job_fnames = []
 
@@ -59,17 +60,17 @@ def main(cmd_py, output_dir, cmd_job, datagen, **kwargs):
                  'f0eps': [0.001, 0.01, 0.05, 0.1, 0.2],
                  'trainNumber': [i for i in range(datagen_settings['n_train_traj'])]
                 }
-    all_job_fnames += queue_joblist(combined_settings=combined_settings, shared_settings=shared_settings, output_dir=output_dir, master_job_file=master_job_file, cmd=cmd_py)
+    all_job_fnames += queue_joblist(combined_settings=combined_settings, shared_settings=shared_settings, output_dir=output_dir, master_job_file=master_job_file, cmd=cmd_py, conda_env=conda_env)
 
     combined_settings['doResidual'] = [0]
     combined_settings['stateType'] = ['stateAndPred']
-    all_job_fnames += queue_joblist(combined_settings=combined_settings, shared_settings=shared_settings, output_dir=output_dir, master_job_file=master_job_file, cmd=cmd_py)
+    all_job_fnames += queue_joblist(combined_settings=combined_settings, shared_settings=shared_settings, output_dir=output_dir, master_job_file=master_job_file, cmd=cmd_py, conda_env=conda_env)
 
     ## f0-ONLY RUN
     combined_settings['doResidual'] = [1]
     combined_settings['stateType'] = ['state']
     combined_settings['modelType'] = ['f0only']
-    all_job_fnames += queue_joblist(combined_settings=combined_settings, shared_settings=shared_settings, output_dir=output_dir, master_job_file=master_job_file, cmd=cmd_py)
+    all_job_fnames += queue_joblist(combined_settings=combined_settings, shared_settings=shared_settings, output_dir=output_dir, master_job_file=master_job_file, cmd=cmd_py, conda_env=conda_env)
 
     ## DATA-ONLY RUN
     combined_settings['doResidual'] = [0]
@@ -77,7 +78,7 @@ def main(cmd_py, output_dir, cmd_job, datagen, **kwargs):
     combined_settings['f0eps'] = ['NA']
     combined_settings['stateType'] = ['state']
     combined_settings['modelType'] = ['discrete', 'continuousInterp']
-    all_job_fnames += queue_joblist(combined_settings=combined_settings, shared_settings=shared_settings, output_dir=output_dir, master_job_file=master_job_file, cmd=cmd_py)
+    all_job_fnames += queue_joblist(combined_settings=combined_settings, shared_settings=shared_settings, output_dir=output_dir, master_job_file=master_job_file, cmd=cmd_py, conda_env=conda_env)
 
     # collect job dirs and enumerate their properties
     summary_df = init_summary_df(combined_settings, all_job_fnames)
