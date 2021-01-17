@@ -115,10 +115,12 @@ def run_summary(output_dir):
     with open(summary_df_name, "rb") as file:
         summary_df = pickle.load(file)
     summary_df = df_eval(df=summary_df)
+    # stratify_list = ['dt']
     metric_list = ['rmse_total', 't_valid_050', 't_valid_005']
-    plot_output_dir = os.path.join(output_dir, 'summary_plots')
-    os.makedirs(plot_output_dir, exist_ok=True)
-    summarize_eps(df=summary_df, style='usef0', hue='type', output_dir=plot_output_dir, metric_list=metric_list)
+    for dt in summary_df.dt.unique():
+        plot_output_dir = os.path.join(output_dir, 'summary_plots_dt{dt}'.format(dt))
+        os.makedirs(plot_output_dir, exist_ok=True)
+        summarize_eps(df=summary_df[summary_df.dt==dt], style='usef0', hue='type', output_dir=plot_output_dir, metric_list=metric_list)
 
 
 if __name__ == '__main__':
