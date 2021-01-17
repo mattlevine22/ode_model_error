@@ -13,7 +13,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--mode', default='all', type=str)
 parser.add_argument('--datagen', default=1, type=int)
 parser.add_argument('--cmd_py', default='python3 main.py', type=str)
-parser.add_argument('--output_dir', default='experiments/debugging6/', type=str)
+parser.add_argument('--output_dir', default='experiments/debugging7/', type=str)
 parser.add_argument('--cmd_job', default='bash', type=str)
 FLAGS = parser.parse_args()
 
@@ -50,8 +50,8 @@ def main(cmd_py, output_dir, cmd_job, datagen, **kwargs):
 
     ## HYBRID PHYSICS RUNS
     combined_settings = { 'modelType': ['discrete', 'continuousInterp'],
-                 'rfDim': [200, 500, 1000],
-                 'tTrain': [100, 1000],
+                 'rfDim': [200],
+                 'tTrain': [100],
                  'usef0': [1],
                  'doResidual': [1],
                  'stateType': ['state', 'stateAndPred'],
