@@ -46,6 +46,7 @@ def df_eval(df):
             data['testNumber'] = data.index
             sub_df = pd.merge(df, data, on='eval_pickle_fname')
             df_list.append(sub_df)
+            pdb.set_trace()
         except:
             pass
     final_df = pd.concat(df_list)
