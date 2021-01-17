@@ -115,7 +115,6 @@ def run_summary(output_dir):
     with open(summary_df_name, "rb") as file:
         summary_df = pickle.load(file)
     summary_df = df_eval(df=summary_df)
-    # stratify_list = ['dt']
     metric_list = ['rmse_total', 't_valid_050', 't_valid_005']
     for dt in summary_df.dt.unique():
         plot_output_dir = os.path.join(output_dir, 'summary_plots_dt{dt}'.format(dt))

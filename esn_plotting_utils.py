@@ -39,12 +39,15 @@ def df_eval(df):
     # read in things
     df_list = []
     for fname in df.eval_pickle_fname:
-        with open(fname, "rb") as file:
-            data = pickle.load(file)
-        data['eval_pickle_fname'] = fname
-        data['testNumber'] = data.index
-        sub_df = pd.merge(df, data, on='eval_pickle_fname')
-        df_list.append(sub_df)
+        try:
+            with open(fname, "rb") as file:
+                data = pickle.load(file)
+            data['eval_pickle_fname'] = fname
+            data['testNumber'] = data.index
+            sub_df = pd.merge(df, data, on='eval_pickle_fname')
+            df_list.append(sub_df)
+        except:
+            pass
     final_df = pd.concat(df_list)
     return final_df
 
