@@ -160,7 +160,7 @@ class IDK(object):
 			# predf0 = np.array([self.predict_next(x_input[i], f0_only=True) for i in range(x_input.shape[0])])
 			for i in range(x_input.shape[0]):
 				if self.usef0:
-					pred = self.predict_next(x_input[i], psi0_only=True)
+					pred = self.psi0(x_input[i])
 					predf0[i] = pred
 				if self.rf_error_input:
 					rf_input = np.hstack((x_input[i],pred))
@@ -233,44 +233,54 @@ class IDK(object):
 		return prediction
 
 
-	def predict_next(self, x_input, t0=0, psi0_only=False):
-		if psi0_only or self.modelType=='discrete' or self.modelType=='f0only':
-			f_rhs = self.f0
-		elif self.modelType=='continuousInterp':
-			f_rhs = self.rhs
+	def psi0(self, ic):
+		pred = self.forward_solver(x_input=ic, f_rhs=self.f0)
+		return pred
 
-		if self.usef0 or self.modelType=='continuousInterp':
-			solver = self.test_integrator
-			u0 = np.copy(x_input)
-			if solver=='Euler':
-				rhs = f_rhs(t0, u0)
-				u_next = u0 + self.dt * rhs
-			elif solver=='Euler_fast':
-				dt_fast = self.dt_fast_frac * self.dt
-				t_end = t0 + self.dt
-				t = np.float(t0)
-				u_next = np.copy(u0)
-				while t < t_end:
-					rhs = f_rhs(t, u_next)
-					u_next += dt_fast * rhs
-					t += dt_fast
-			elif solver=='RK45':
-				t_span = [t0, t0+self.dt]
-				t_eval = np.array([t0+self.dt])
-				sol = solve_ivp(fun=lambda t, y: f_rhs(t, y), t_span=t_span, y0=u0, t_eval=t_eval, max_step=self.dt/10)
-				u_next = sol.y
-
-			u_next = np.squeeze(u_next)
-		else:
-			u_next = np.zeros(self.input_dim)
-
-		if (not psi0_only) and self.modelType=='discrete':
+	def predict_next(self, x_input, t0=0):
+		u_next = np.zeros(self.input_dim)
+		if self.modelType=='discrete':
+			if self.doResidual or self.usef0:
+				pred = self.scaler.scaleData(self.psi0(self.scaler.descaleData(x_input)), reuse=1)
+			else:
+				pred = 0
 			if self.rf_error_input:
-				rf_input = np.hstack((x_input, u_next))
+				rf_input = np.hstack((x_input, pred))
 			else:
 				rf_input = x_input
-			u_next += self.W_out_markov @ self.q_t(rf_input)
+			u_next = pred + self.W_out_markov @ self.q_t(rf_input)
+		elif self.modelType=='continuousInterp':
+			u_next = self.forward_solver(x_input=x_input, f_rhs=self.rhs)
+		elif self.modelType=='f0only':
+			u_next = self.scaler.scaleData(self.psi0(self.scaler.descaleData(x_input)), reuse=1)
+		else:
+			raise ValueError('modelType not recognized')
 
+		return np.squeeze(u_next)
+
+
+	def forward_solver(self, x_input, f_rhs, t0=0):
+		solver = self.test_integrator
+		u0 = np.copy(x_input)
+		if solver=='Euler':
+			rhs = f_rhs(t0, u0)
+			u_next = u0 + self.dt * rhs
+		elif solver=='Euler_fast':
+			dt_fast = self.dt_fast_frac * self.dt
+			t_end = t0 + self.dt
+			t = np.float(t0)
+			u_next = np.copy(u0)
+			while t < t_end:
+				rhs = f_rhs(t, u_next)
+				u_next += dt_fast * rhs
+				t += dt_fast
+		elif solver=='RK45':
+			t_span = [t0, t0+self.dt]
+			t_eval = np.array([t0+self.dt])
+			sol = solve_ivp(fun=lambda t, y: f_rhs(t, y), t_span=t_span, y0=u0, t_eval=t_eval, max_step=self.dt/10)
+			u_next = sol.y
+
+		u_next = np.squeeze(u_next)
 		return u_next
 
 	def rhs(self, t0, u0):
