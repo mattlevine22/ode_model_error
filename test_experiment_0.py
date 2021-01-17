@@ -71,6 +71,7 @@ def main(cmd_py, output_dir, cmd_job, datagen, **kwargs):
     all_job_fnames += queue_joblist(combined_settings=combined_settings, shared_settings=shared_settings, output_dir=output_dir, master_job_file=master_job_file, cmd=cmd_py)
 
     ## DATA-ONLY RUN
+    combined_settings['doResidual'] = [0]
     combined_settings['usef0'] = [0]
     combined_settings['f0eps'] = ['NA']
     combined_settings['stateType'] = ['state']
