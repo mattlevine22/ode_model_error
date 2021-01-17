@@ -42,7 +42,7 @@ class IDK(object):
 		self.stateType = params["stateType"]
 		self.trainNumber = params["trainNumber"]
 		self.dt = params["dt"]
-		self.t_train = params["t_train"]
+		self.t_train = params["tTrain"]
 		self.t_test = params["t_test"]
 
 		self.f0only = 0
