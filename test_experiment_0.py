@@ -13,7 +13,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--mode', default='all', type=str)
 parser.add_argument('--datagen', default=1, type=int)
 parser.add_argument('--cmd_py', default='python3 main.py', type=str)
-parser.add_argument('--output_dir', default='experiments/debugging5/', type=str)
+parser.add_argument('--output_dir', default='experiments/debugging6/', type=str)
 parser.add_argument('--cmd_job', default='bash', type=str)
 FLAGS = parser.parse_args()
 
