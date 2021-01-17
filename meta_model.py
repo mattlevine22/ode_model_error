@@ -73,7 +73,7 @@ class IDK(object):
 		self.scaler = scaler(tt=self.scaler_tt, tt_derivative=self.scaler_tt_derivatives, component_wise=self.component_wise)
 		self.noise_level = params["noise_level"]
 		self.test_integrator = params["test_integrator"]
-		self.rf_dim = params["rf_dim"]
+		self.rf_dim = params["rfDim"]
 		self.rf_Win_bound = params["rf_Win_bound"]
 		self.rf_bias_bound = params["rf_bias_bound"]
 		self.ZY = params["ZY"]

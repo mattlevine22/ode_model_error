@@ -50,7 +50,7 @@ def main(cmd_py, output_dir, cmd_job, datagen, **kwargs):
 
     ## HYBRID PHYSICS RUNS
     combined_settings = { 'modelType': ['discrete', 'continuousInterp'],
-                 'rf_dim': [200, 500, 1000],
+                 'rfDim': [200, 500, 1000],
                  'tTrain': [100, 1000],
                  'usef0': [1],
                  'doResidual': [1],
