@@ -54,7 +54,7 @@ def main(cmd_py, output_dir, cmd_job, datagen, **kwargs):
                  'usef0': [1],
                  'doResidual': [1],
                  'stateType': ['state', 'stateAndPred'],
-                 'dt': [0.001, 0.005, 0.01, 0.05, 0.1],
+                 'dt': [0.001, 0.01, 0.1],
                  'f0eps': [0.001, 0.01, 0.05, 0.1, 0.2],
                  'trainNumber': [i for i in range(datagen_settings['n_train_traj'])]
                 }
