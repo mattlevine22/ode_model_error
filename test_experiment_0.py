@@ -116,7 +116,6 @@ def run_summary(output_dir):
     summary_df_name = os.path.join(output_dir, 'summary_df.pickle')
     with open(summary_df_name, "rb") as file:
         summary_df = pickle.load(file)
-    pdb.set_trace()
     summary_df = df_eval(df=summary_df)
     metric_list = ['rmse_total', 't_valid_050', 't_valid_005']
     for dt in summary_df.dt.unique():
