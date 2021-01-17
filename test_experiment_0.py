@@ -50,6 +50,7 @@ def main(cmd_py, output_dir, cmd_job, datagen, **kwargs):
 
     ## HYBRID PHYSICS RUNS
     combined_settings = { 'modelType': ['discrete', 'continuousInterp'],
+                 'rf_dim': [200, 500, 1000],
                  'tTrain': [100, 1000],
                  'usef0': [1],
                  'doResidual': [1],
@@ -119,9 +120,10 @@ def run_summary(output_dir):
     metric_list = ['rmse_total', 't_valid_050', 't_valid_005']
     for dt in summary_df.dt.unique():
         for t in summary_df.tTrain.unique():
-            plot_output_dir = os.path.join(output_dir, 'summary_plots_dt{dt}_tTrain{t}'.format(dt=dt, t=t))
-            os.makedirs(plot_output_dir, exist_ok=True)
-            summarize_eps(df=summary_df[summary_df.dt==dt], style='usef0', hue='type', output_dir=plot_output_dir, metric_list=metric_list)
+            for rfd in summary_df.rf_dim.unique():
+                plot_output_dir = os.path.join(output_dir, 'summary_plots_dt{dt}_tTrain{t}_rfdim{rfd}'.format(dt=dt, t=t, rfd=rfd))
+                os.makedirs(plot_output_dir, exist_ok=True)
+                summarize_eps(df=summary_df[summary_df.dt==dt], style='usef0', hue='type', output_dir=plot_output_dir, metric_list=metric_list)
 
 
 if __name__ == '__main__':
