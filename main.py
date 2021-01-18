@@ -26,9 +26,9 @@ def main():
     # train the model
     model.train()
 
-    # test the model
+    # test the saved model
+    model.loadModel() # need to do this because last validation run needs to be cleared
     model.test()
-    # pdb.set_trace()
 
     # plot the model performance
     model.plot()

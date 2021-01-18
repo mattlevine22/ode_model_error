@@ -136,81 +136,108 @@ class IDK(object):
 		tl = train_input_sequence.shape[0] - self.dynamics_length
 
 		# Do the learning!
-		self.learn(tl=tl, dynamics_length=self.dynamics_length, train_input_sequence=train_input_sequence)
+		self.setup_the_learning(tl=tl, dynamics_length=self.dynamics_length, train_input_sequence=train_input_sequence)
 
-		self.saveModel()
+		# get answers for default hyperparameters (regularization_RF)
+		# self.doNewSolving()
+		# self.saveModel()
+
+		# Do validation loop over reg_RF
+		# reg_list = [10, 5, 1, 5e-1, 1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 1e-6, 1e-7, 1e-8, 1e-9, 1e-10]
+		reg_list = [10, 1, 0.1, 0.01, 1e-3, 1e-6, 1e-9]
+		# reg_list = [1, 10, 1e-6]
+		best_reg = self.regularization_RF
+		best_quality = 0
+		for reg_rf in reg_list:
+			self.regularization_RF = reg_rf
+			self.doNewSolving()
+			quality_df = self.validate()
+			quality = quality_df.t_valid_050.mean()
+			if quality > best_quality:
+				best_quality = quality
+				best_reg = reg_rf
+				print('Best: ', best_reg, 'with t_valid=', best_quality)
+				self.saveModel()
+
+		# run final
+		# self.regularization_RF = best_reg
+		# self.doNewSolving()
+		# self.saveModel()
 
 		# output training statistics
 		self.write_training_stats()
 
-	def learn(self, tl, dynamics_length, train_input_sequence):
+	def setup_the_learning(self, tl, dynamics_length, train_input_sequence):
 		if self.modelType=='continuousInterp':
-			# Gather training info
-			self.newMethod(tl=tl, dynamics_length=self.dynamics_length, train_input_sequence=train_input_sequence)
-			# alternative method for solving!!!
-			self.doNewSolving()
+			self.continuousInterpRF(tl=tl, dynamics_length=self.dynamics_length, train_input_sequence=train_input_sequence)
 		elif self.modelType=='discrete':
-			Z = np.zeros((self.rf_dim, self.rf_dim))
-			Y = np.zeros((self.rf_dim, self.input_dim))
 			if self.component_wise:
 				raise ValueError('component wise not yet set up for discrete')
+			x_output = train_input_sequence[1:]
 			x_input = train_input_sequence[:-1]
-			rf = np.zeros((x_input.shape[0], self.rf_dim))
-			predf0 = np.zeros(x_input.shape)
-			# predf0 = np.array([self.predict_next(x_input[i], f0_only=True) for i in range(x_input.shape[0])])
-			for i in range(x_input.shape[0]):
-				if self.usef0:
-					pred = self.psi0(x_input[i])
-					predf0[i] = pred
-				if self.rf_error_input:
-					rf_input = np.hstack((x_input[i],pred))
-				else:
-					rf_input = x_input[i]
-				q_i = self.q_t(rf_input)
-				rf[i] = q_i
+			x_input_descaled = self.scaler.descaleData(x_input)
+			if self.usef0:
+				predf0 = self.scaler.scaleData(np.array([self.psi0(x_input_descaled[i]) for i in range(x_input.shape[0])]), reuse=1)
+			if self.rf_error_input:
+				rf_input = np.hstack((x_input, predf0))
+			else:
+				rf_input = x_input
+			if self.doResidual:
+				x_output -= predf0
 
-				if self.doResidual:
-					foo = train_input_sequence[i+1] - pred
-				else:
-					foo = train_input_sequence[i+1]
-
-				Z += np.outer(q_i, q_i)
-				Y += np.outer(q_i, foo)
-			self.Z = Z / x_input.shape[0]
-			self.Y = Y / x_input.shape[0]
-			self.reg_dim = self.Z.shape[0]
-			self.doNewSolving()
+			if self.modelType=='discrete':
+				Z = np.zeros((self.rf_dim, self.rf_dim))
+				Y = np.zeros((self.rf_dim, self.input_dim))
+				for i in range(x_input.shape[0]):
+					q_i = self.q_t(rf_input[i])
+					foo = x_output[i]
+					Z += np.outer(q_i, q_i)
+					Y += np.outer(q_i, foo)
+				self.Z = Z / x_input.shape[0]
+				self.Y = Y / x_input.shape[0]
+				self.reg_dim = self.Z.shape[0]
+			elif self.modelType=='discreteGP':
+				return
 
 		# Store something useful for plotting
 		# self.first_train_vec = train_input_sequence[(self.dynamics_length+1),:]
 
 	def test(self):
 		# self.testingOnTrainingSet()
-		self.testingOnTestingSet()
+		test_eval = self.testingOnSet(setnm='test')
 		# self.saveResults()
-		self.write_testing_stats()
+		self.write_stats(pd_stat=test_eval, stat_name='test_eval')
 
-	def testingOnTestingSet(self):
+	def validate(self):
+		# self.testingOnTrainingSet()
+		validate_eval = self.testingOnSet(setnm='validate', do_plots=False)
+		# self.saveResults()
+		# self.write_testing_stats()
+		return validate_eval
+
+
+	def testingOnSet(self, setnm, do_plots=True):
 		with open(self.test_data_path, "rb") as file:
 			data = pickle.load(file)
 			self.dt_rawdata = data["dt"]
-			test_data = data["u_test"][:, :, :self.input_dim]
+			test_data = data["u_{}".format(setnm)][:, :, :self.input_dim]
 			del data
 
 		n_test_traj = test_data.shape[0]
-		self.test_eval = []
+		test_eval = []
 		# loop over test sets
 		for n in range(n_test_traj):
 			test_input_sequence = self.subsample(x=test_data[n], t_end=self.t_test)
-			eval_dict = self.eval(input_sequence=test_input_sequence, t_end=self.t_test, set_name="TEST"+str(n))
-			self.test_eval.append(eval_dict)
+			eval_dict = self.eval(input_sequence=test_input_sequence, t_end=self.t_test, set_name=setnm+str(n), do_plots=do_plots)
+			test_eval.append(eval_dict)
 
-		# regroup self.test_eval
-		self.test_eval = pd.DataFrame(self.test_eval)
+		# regroup test_eval
+		test_eval = pd.DataFrame(test_eval)
 
+		return test_eval
 		# rmnse_avg, num_accurate_pred_005_avg, num_accurate_pred_050_avg, error_freq, predictions_all, truths_all, freq_pred, freq_true, sp_true, sp_pred, hidden_all = self.eval(test_input_sequence, dt, "TEST")
 
-	def eval(self, input_sequence, t_end, set_name):
+	def eval(self, input_sequence, t_end, set_name, do_plots=True):
 		# allocate ic and target
 		ic = self.scaler.scaleData(input_sequence[0], reuse=1)
 		target = input_sequence
@@ -219,7 +246,8 @@ class IDK(object):
 		prediction = self.make_predictions(ic=ic, t_end=t_end)
 		prediction = self.scaler.descaleData(prediction)
 		eval_dict = computeErrors(target, prediction, self.scaler.data_std, dt=self.dt)
-		self.makeNewPlots(true_traj=target, predicted_traj=prediction, set_name=set_name)
+		if do_plots:
+			self.makeNewPlots(true_traj=target, predicted_traj=prediction, set_name=set_name)
 		return eval_dict
 
 	def make_predictions(self, ic, t_end):
@@ -372,10 +400,10 @@ class IDK(object):
 	def write_training_stats(self):
 	    pass
 
-	def write_testing_stats(self):
-		save_path = self.saving_path  + "/test_eval.pickle"
+	def write_stats(self, pd_stat, stat_name):
+		save_path = self.saving_path  + "/{}.pickle".format(stat_name)
 		with open(save_path, "wb") as file:
-			pickle.dump(self.test_eval, file, pickle.HIGHEST_PROTOCOL)
+			pickle.dump(pd_stat, file, pickle.HIGHEST_PROTOCOL)
 
 	def subsample(self, x, t_end):
 		# x: time x dims
@@ -493,7 +521,7 @@ class IDK(object):
 
 		return yall
 
-	def newMethod(self, tl, dynamics_length, train_input_sequence):
+	def continuousInterpRF(self, tl, dynamics_length, train_input_sequence):
 
 		self.x_vec = train_input_sequence
 		self.n_min = self.x_vec.shape[0]-1
@@ -678,6 +706,7 @@ class IDK(object):
 		"b_h_markov":self.b_h_markov,
 		"W_out_markov":self.W_out_markov,
 		"scaler":self.scaler,
+		"regularization_RF":self.regularization_RF
 		# "first_train_vec": self.first_train_vec
 		}
 		data_path = self.saving_path + self.model_dir + "/data.pickle"
@@ -685,16 +714,3 @@ class IDK(object):
 			pickle.dump(data, file, pickle.HIGHEST_PROTOCOL)
 			del data
 		return 0
-
-# class rf_disc(object):
-# 	def __init__(self, params):
-# 		self.feature = params["feature"]
-#
-#     def train(self):
-#         write_training_stats()
-#
-#     def test(self):
-#         write_testing_stats()
-#
-#     def plot():
-#         pass
