@@ -15,11 +15,14 @@ parser.add_argument('--datagen', default=1, type=int)
 parser.add_argument('--cmd_py', default='python3 main.py', type=str)
 parser.add_argument('--output_dir', default='experiments/debugging7/', type=str)
 parser.add_argument('--cmd_job', default='bash', type=str)
-parser.add_argument('--conda_env', default='vlachas', type=str)
+parser.add_argument('--conda_env', default='', type=str)
 FLAGS = parser.parse_args()
 
 
 def main(cmd_py, output_dir, cmd_job, datagen, conda_env, **kwargs):
+
+    if conda_env=='':
+        conda_env = None
 
     all_job_fnames = []
 
