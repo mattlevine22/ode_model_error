@@ -1,5 +1,5 @@
 {
-  "regularization_RF": 0.0,
+  "regularization_RF": 1,
   "scaler": "Standard",
   "scaler_derivatives": "no",
   "noise_level": 0,
