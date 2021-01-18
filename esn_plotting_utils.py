@@ -22,7 +22,6 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from matplotlib import rc
 from matplotlib  import cm
-from mpl_toolkits import mplot3d
 import pickle
 from matplotlib import colors
 import six

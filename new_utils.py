@@ -161,12 +161,12 @@ def parse_output_path(pathname, nm_list):
         except:
             pdb.set_trace()
         try:
-            if float(val)==int(val):
-                val = int(val)
-            else:
-                val = float(val)
+            val = int(val)
         except:
-            pass
+            try:
+                val = float(val)
+            except:
+                pass
         var_dict[key] = val
     return var_dict
 
