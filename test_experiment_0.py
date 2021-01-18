@@ -34,15 +34,17 @@ def main(cmd_py, output_dir, cmd_job, datagen, conda_env, **kwargs):
     data_pathname = os.path.join(output_dir, 'l63data.pickle')
 
     datagen_settings = {'rng_seed': 63,
-            			't_transient': 10,
-            			't_train': 105,
-            			't_invariant_measure': 100,
-            			't_test': 20,
-            			'n_test_traj': 10,
-            			'n_train_traj': 2,
-            			'delta_t': 0.001,
+                        't_transient': 10,
+                        't_train': 105,
+                        't_invariant_measure': 100,
+                        't_test': 20,
+                        't_validate': 20,
+                        'n_test_traj': 10,
+                        'n_train_traj': 2,
+                        'n_validate_traj': 4,
+                        'delta_t': 0.001,
                         'data_pathname': data_pathname
-            		}
+                    }
 
     if datagen:
         generate_data(ode=L63(), **datagen_settings)

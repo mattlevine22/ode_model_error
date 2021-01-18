@@ -177,8 +177,10 @@ def generate_data(ode,
     			t_train,
     			t_invariant_measure,
     			t_test,
+                t_validate,
     			n_test_traj,
     			n_train_traj,
+                n_validate_traj,
     			delta_t,
                 data_pathname):
 
@@ -217,11 +219,15 @@ def generate_data(ode,
     # make many testing trajectories
     u_test = np.array([simulate_traj(T1=t_transient, T2=t_test) for _ in range(n_test_traj)])
 
+    # make many validation trajectories
+    u_validate = np.array([simulate_traj(T1=t_transient, T2=t_validate) for _ in range(n_validate_traj)])
+
     # save data
     data = {
         "u_inv_meas": u_inv_meas,
         "u_train": u_train,
         "u_test": u_test,
+        "u_validate": u_validate,
         "dt": delta_t
     }
 
