@@ -62,7 +62,7 @@ def main(cmd_py, output_dir, cmd_job, datagen, conda_env, **kwargs):
                  'doResidual': [1],
                  'stateType': ['state', 'stateAndPred'],
                  'dt': [0.001, 0.01, 0.1],
-                 'f0eps': [0.001, 0.01, 0.05, 0.1, 0.2],
+                 'f0eps': [0.001, 0.01, 0.05, 0.1, 0.2, 0.5, 1, 2],
                  'trainNumber': [i for i in range(datagen_settings['n_train_traj'])]
                 }
     all_job_fnames += queue_joblist(combined_settings=combined_settings, shared_settings=shared_settings, output_dir=output_dir, master_job_file=master_job_file, cmd=cmd_py, conda_env=conda_env)
