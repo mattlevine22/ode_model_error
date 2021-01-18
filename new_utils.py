@@ -53,7 +53,7 @@ def make_and_deploy(bash_run_command='echo $HOME',
                     command_flag_dict={}, jobfile_dir='./my_jobs',
                     jobname='jobbie', depending_jobs=[], jobid_dir=None,
                     master_job_file=None, report_status=True, exclusive=True,
-                    hours=6, no_submit=False, use_gpu=False, conda_env=None):
+                    hours=12, no_submit=False, use_gpu=False, conda_env=None):
 
     # build sbatch job script and write to file
     job_directory = jobfile_dir
