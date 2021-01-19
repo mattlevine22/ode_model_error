@@ -144,7 +144,7 @@ class IDK(object):
 
 		# Do validation loop over reg_RF
 		# reg_list = [10, 5, 1, 5e-1, 1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 1e-6, 1e-7, 1e-8, 1e-9, 1e-10]
-		reg_list = [10, 1, 0.1, 0.01, 1e-3, 1e-6, 1e-9]
+		reg_list = [10, 1, 0.1, 0.01, 1e-3, 1e-6, 1e-9, 1e-12, 1e-15]
 		# reg_list = [1, 10, 1e-6]
 		best_reg = self.regularization_RF
 		best_quality = 0
@@ -220,14 +220,15 @@ class IDK(object):
 		with open(self.test_data_path, "rb") as file:
 			data = pickle.load(file)
 			self.dt_rawdata = data["dt"]
-			test_data = data["u_{}".format(setnm)][:, :, :self.input_dim]
+			eval_data = data["u_{}".format(setnm)][:, :, :self.input_dim]
 			del data
 
-		n_test_traj = test_data.shape[0]
+		n_traj = eval_data.shape[0]
 		test_eval = []
 		# loop over test sets
-		for n in range(n_test_traj):
-			test_input_sequence = self.subsample(x=test_data[n], t_end=self.t_test)
+		for n in range(n_traj):
+			print('Evaluating',setnm, 'set #', n, '/', n_traj)
+			test_input_sequence = self.subsample(x=eval_data[n], t_end=self.t_test)
 			eval_dict = self.eval(input_sequence=test_input_sequence, t_end=self.t_test, set_name=setnm+str(n), do_plots=do_plots)
 			test_eval.append(eval_dict)
 

@@ -24,9 +24,11 @@ def main():
     model = IDK(settings=settings)
 
     # train the model
+    print('Begin training!')
     model.train()
 
     # test the saved model
+    print('Begin testing!')
     model.loadModel() # need to do this because last validation run needs to be cleared
     model.test()
 
