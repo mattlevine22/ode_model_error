@@ -9,16 +9,19 @@ from scipy.linalg import block_diag
 from scipy.integrate import solve_ivp, trapz
 from scipy.interpolate import CubicSpline
 # from scipy.stats import loguniform
-from esn_plotting_utils import *
-from esn_global_utils import *
 import time
 from functools import partial
 print = partial(print, flush=True)
 from sklearn.linear_model import Ridge
 from sklearn.linear_model import Lasso
 
-from new_utils import file_to_dict
 from odelibrary import L63
+
+# matt utils
+from utils import file_to_dict
+from plotting_utils import *
+from computation_utils import *
+
 
 import pandas as pd
 
@@ -227,7 +230,7 @@ class IDK(object):
 		test_eval = []
 		# loop over test sets
 		for n in range(n_traj):
-			print('Evaluating',setnm, 'set #', n, '/', n_traj)
+			print('Evaluating',setnm, 'set #', n+1, '/', n_traj)
 			test_input_sequence = self.subsample(x=eval_data[n], t_end=self.t_test)
 			eval_dict = self.eval(input_sequence=test_input_sequence, t_end=self.t_test, set_name=setnm+str(n), do_plots=do_plots)
 			test_eval.append(eval_dict)

@@ -1,7 +1,7 @@
 import os, sys
 import numpy as np
-from new_utils import *
-from esn_plotting_utils import *
+from utils import *
+from plotting_utils import *
 from odelibrary import L63
 import pandas as pd
 import pdb

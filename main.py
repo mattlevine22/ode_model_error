@@ -2,8 +2,7 @@ import os, sys
 import numpy as np
 import argparse
 from meta_model import *
-from new_utils import *
-# from utils import dict_combiner, dict_to_file, make_and_deploy, str2bool
+from utils import *
 import pdb
 
 from odelibrary import L63

@@ -8,8 +8,24 @@ from scipy.integrate import solve_ivp
 import subprocess
 import glob
 import itertools
-from new_utils import *
+import pandas as pd
 import pdb
+
+def df_eval(df):
+    # read in things
+    df_list = []
+    for fname in df.eval_pickle_fname:
+        try:
+            with open(fname, "rb") as file:
+                data = pickle.load(file)
+            data['eval_pickle_fname'] = fname
+            data['testNumber'] = data.index
+            sub_df = pd.merge(df, data, on='eval_pickle_fname')
+            df_list.append(sub_df)
+        except:
+            pass
+    final_df = pd.concat(df_list)
+    return final_df
 
 
 def queue_joblist(combined_settings, shared_settings, output_dir, master_job_file, cmd, conda_env=None):
