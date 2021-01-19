@@ -564,17 +564,17 @@ class IDK(object):
 			self.Z = []
 			for k in range(self.input_dim):
 				# Perform training integration using IC y0
-				print('Integrating over training data...')
-				timer_start = time.time()
-				sol = solve_ivp(fun=lambda t, y: self.rcrf_rhs(t, y, k=k), t_span=t_span, t_eval=t_eval, y0=y0[k], max_step=self.dt/10)
-				print('...took {:2.2f} minutes'.format((time.time() - timer_start)/60))
 
 				# allocate, reshape, normalize, and save solutions
 				print('Compute final Y,Z component...')
 				if self.ZY=='new':
-					self.newMethod_getYZstuff2(times=sol.t, k=k)
+					self.newMethod_getYZstuff2(times=t_eval, k=k)
 					self.newMethod_saveYZ(T_train=T_train)
 				else:
+					print('Integrating over training data...')
+					timer_start = time.time()
+					sol = solve_ivp(fun=lambda t, y: self.rcrf_rhs(t, y, k=k), t_span=t_span, t_eval=t_span, y0=y0[k])
+					print('...took {:2.2f} minutes'.format((time.time() - timer_start)/60))
 					self.newMethod_getYZstuff(yend=sol.y[:,-1])
 					self.newMethod_saveYZ(T_train=T_train)
 
@@ -582,18 +582,18 @@ class IDK(object):
 			self.Z = np.vstack(self.Z)
 		else:
 			# Perform training integration using IC y0
-			print('Integrating over training data...')
-			timer_start = time.time()
-			sol = solve_ivp(fun=self.rcrf_rhs, t_span=t_span, t_eval=t_eval, y0=y0, max_step=self.dt/10)
-			print('...took {:2.2f} minutes'.format((time.time() - timer_start)/60))
 
 			# allocate, reshape, normalize, and save solutions
 			print('Compute final Y,Z...')
 			# now test ability to get YZ solely from integrated r(t) to save solve_ivp computations
 			if self.ZY=='new':
-				self.newMethod_getYZstuff2(times=sol.t)
+				self.newMethod_getYZstuff2(times=t_eval)
 				self.newMethod_saveYZ(T_train=T_train)
 			else:
+				print('Integrating over training data...')
+				timer_start = time.time()
+				sol_span = solve_ivp(fun=self.rcrf_rhs, t_span=t_span, t_eval=t_span, y0=y0)
+				print('...took {:2.2f} minutes'.format((time.time() - timer_start)/60))
 				self.newMethod_getYZstuff(yend=sol.y[:,-1])
 				self.newMethod_saveYZ(T_train=T_train)
 
