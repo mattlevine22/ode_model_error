@@ -592,7 +592,7 @@ class IDK(object):
 			else:
 				print('Integrating over training data...')
 				timer_start = time.time()
-				sol_span = solve_ivp(fun=self.rcrf_rhs, t_span=t_span, t_eval=t_span, y0=y0)
+				sol = solve_ivp(fun=self.rcrf_rhs, t_span=t_span, t_eval=t_span, y0=y0)
 				print('...took {:2.2f} minutes'.format((time.time() - timer_start)/60))
 				self.newMethod_getYZstuff(yend=sol.y[:,-1])
 				self.newMethod_saveYZ(T_train=T_train)
