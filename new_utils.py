@@ -53,7 +53,8 @@ def make_and_deploy(bash_run_command='echo $HOME',
                     command_flag_dict={}, jobfile_dir='./my_jobs',
                     jobname='jobbie', depending_jobs=[], jobid_dir=None,
                     master_job_file=None, report_status=True, exclusive=True,
-                    hours=12, no_submit=False, use_gpu=False, conda_env=None):
+                    hours=12, no_submit=False, use_gpu=False, conda_env=None,
+                    mem=None):
 
     # build sbatch job script and write to file
     job_directory = jobfile_dir
@@ -73,6 +74,8 @@ def make_and_deploy(bash_run_command='echo $HOME',
     sbatch_str += "#SBATCH --output=%s.out\n" % os.path.join(out_directory,jobname)
     sbatch_str += "#SBATCH --error=%s.err\n" % os.path.join(out_directory,jobname)
     sbatch_str += "#SBATCH --time={0}:00:00\n".format(hours) # default 24hrs. Shorter time gets more priority.
+    if mem:
+        sbatch_str += "#SBATCH --mem={0}\n".format(mem) # amt of RAM per job (e.g. '10GB' or '100MB')
     if exclusive:
         sbatch_str += "#SBATCH --exclusive\n" # exclusive use of a node for the submitted job
     if use_gpu:
