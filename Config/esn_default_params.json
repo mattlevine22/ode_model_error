@@ -1,8 +1,7 @@
 {
   "regularization_RF": 1,
-  "scaler": "Standard",
+  "scaler": "no",
   "scaler_derivatives": "no",
-  "noise_level": 0,
   "component_wise": 0,
   "rf_Win_bound": 0.005,
   "rf_bias_bound": 4,
