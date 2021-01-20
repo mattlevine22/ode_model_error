@@ -47,6 +47,7 @@ class IDK(object):
 
 		# initialize
 		## new properties
+		self.validate_hyperparameters = 1
 		self.modelType = params["modelType"]
 		self.stateType = params["stateType"]
 		self.trainNumber = params["trainNumber"]
@@ -79,7 +80,6 @@ class IDK(object):
 		##########################################
 		self.component_wise = params["component_wise"]
 		self.scaler = scaler(tt=self.scaler_tt, tt_derivative=self.scaler_tt_derivatives, component_wise=self.component_wise)
-		self.noise_level = params["noise_level"]
 		self.test_integrator = params["test_integrator"]
 		self.rf_dim = params["rfDim"]
 		self.rf_Win_bound = params["rf_Win_bound"]
@@ -149,23 +149,24 @@ class IDK(object):
 		# self.saveModel()
 
 		# Do a hyperparameter optimization using a validation step
-		log_reg_list = np.arange(-9,1)
-		pbounds = {'log_regularization_RF': (-20, 4)} #radius, regularization
-		optimizer = BayesianOptimization(f=self.validation_function,
-										pbounds=pbounds,
-										random_state=1)
-		log_path = os.path.join(self.logfile_dir, "BayesOpt_log.json")
-		logger = JSONLogger(path=log_path) #conda version doesnt have RESET feature
-		optimizer.subscribe(Events.OPTIMIZATION_STEP, logger)
-		for log_reg_rf in log_reg_list:
-			optimizer.probe(params={"log_regularization_RF": log_reg_rf}, lazy=True)
-		optimizer.maximize(init_points=1, n_iter=30, acq='ucb')
-		best_param_dict = optimizer.max['params']
-		best_quality = optimizer.max['target']
-		print("Optimal parameters:", best_param_dict, '(quality = {})'.format(best_quality))
+		if self.validate_hyperparameters:
+			log_reg_list = np.arange(-9,1)
+			pbounds = {'log_regularization_RF': (-20, 4)} #radius, regularization
+			optimizer = BayesianOptimization(f=self.validation_function,
+											pbounds=pbounds,
+											random_state=1)
+			log_path = os.path.join(self.logfile_dir, "BayesOpt_log.json")
+			logger = JSONLogger(path=log_path) #conda version doesnt have RESET feature
+			optimizer.subscribe(Events.OPTIMIZATION_STEP, logger)
+			for log_reg_rf in log_reg_list:
+				optimizer.probe(params={"log_regularization_RF": log_reg_rf}, lazy=True)
+			optimizer.maximize(init_points=1, n_iter=30, acq='ucb')
+			best_param_dict = optimizer.max['params']
+			best_quality = optimizer.max['target']
+			print("Optimal parameters:", best_param_dict, '(quality = {})'.format(best_quality))
+			# Save final model w/ optimal hyperparameters
+			self.regularization_RF = 10**(float(best_param_dict["log_regularization_RF"]))
 
-		# Save final model w/ optimal hyperparameters
-		self.regularization_RF = 10**(float(best_param_dict["log_regularization_RF"]))
 		# for key in best_param_dict:
 		# 	exec("self.{varnm} = {val}".format(varnm=key, val=best_param_dict[key]))
 		self.doNewSolving()
@@ -195,14 +196,12 @@ class IDK(object):
 			if self.modelType=='discrete':
 				Z = np.zeros((self.rf_dim, self.rf_dim))
 				Y = np.zeros((self.rf_dim, self.input_dim))
-				for i in range(x_input.shape[0]):
-					q_i = self.q_t(rf_input[i])
-					foo = x_output[i]
-					Z += np.outer(q_i, q_i)
-					Y += np.outer(q_i, foo)
-				self.Z = Z / x_input.shape[0]
-				self.Y = Y / x_input.shape[0]
+				Q = np.array([self.q_t(rf_input[i]) for i in range(rf_input.shape[0])])
+				self.Z = Q.T @ Q / x_input.shape[0] # normalize by length
+				self.Y = Q.T @ x_output / x_input.shape[0]
 				self.reg_dim = self.Z.shape[0]
+				print('|Z| =', np.mean(self.Z**2))
+				print('|Y| =', np.mean(self.Y**2))
 			elif self.modelType=='discreteGP':
 				return
 
@@ -675,27 +674,29 @@ class IDK(object):
 
 
 	def doNewSolving(self):
-		print('Solving inverse problem W = (Z+rI)^-1 Y...')
-		# regI = np.identity(self.Z.shape[0])
-		regI = np.identity(self.reg_dim)
-		regI *= self.regularization_RF
+		if self.modelType in ['continuousInterp', 'discrete']:
+			print('Solving inverse problem W = (Z+rI)^-1 Y...')
+			# regI = np.identity(self.Z.shape[0])
+			regI = np.identity(self.reg_dim)
+			regI *= self.regularization_RF
 
-		if self.component_wise:
-			# stack regI K times
-			regI = np.tile(regI,(self.input_dim,1))
+			if self.component_wise:
+				# stack regI K times
+				regI = np.tile(regI,(self.input_dim,1))
 
-		pinv_ = scipypinv2(self.Z + regI)
-		# W_out_all = self.Y.T @ pinv_ # old code
-		W_out_all = (pinv_ @ self.Y).T # basically the same...very slight differences due to numerics
-		self.W_out_markov = W_out_all
+			pinv_ = scipypinv2(self.Z + regI)
+			# W_out_all = self.Y.T @ pinv_ # old code
+			W_out_all = (pinv_ @ self.Y).T # basically the same...very slight differences due to numerics
+			self.W_out_markov = W_out_all
 
-		plotMatrix(self, self.W_out_markov, 'W_out_markov')
+			plotMatrix(self, self.W_out_markov, 'W_out_markov')
 
-		# Compute residuals from inversion
-		res = (self.Z + regI) @ W_out_all.T - self.Y
-		mse = np.mean(res**2)
-		print('Inversion MSE for lambda_RF={lrf} is {mse} with normalized |Wout|={nrm}'.format(lrf=self.regularization_RF, mse=mse, nrm=np.mean(W_out_all**2)))
-		return
+			# Compute residuals from inversion
+			res = (self.Z + regI) @ W_out_all.T - self.Y
+			mse = np.mean(res**2)
+			print('Inversion MSE for lambda_RF={lrf} is {mse} with normalized |Wout|={nrm}'.format(lrf=self.regularization_RF, mse=mse, nrm=np.mean(W_out_all**2)))
+		elif self.modelType in ['discreteGP']:
+			pass
 
 	def saveModel(self):
 		self.n_trainable_parameters = np.size(self.W_out_markov)
