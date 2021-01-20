@@ -11,9 +11,8 @@
   "test_integrator": "RK45",
   "rf_error_input": 0,
   "ZY": "old",
-  "model_dir": "/Trained_Models/",
-  "fig_dir": "/Figures/",
-  "results_dir": "/Evaluation_Data/",
-  "logfile_dir": "/Logfiles/",
+  "model_dir": "Trained_Models",
+  "fig_dir": "Figures",
+  "logfile_dir": "Logfiles",
   "rng_seed": 0
 }

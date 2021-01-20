@@ -22,6 +22,12 @@ from utils import file_to_dict
 from plotting_utils import *
 from computation_utils import *
 
+#BayesianOptimization
+from bayes_opt import BayesianOptimization
+from bayes_opt.logger import JSONLogger
+from bayes_opt.event import Events
+from bayes_opt.util import load_logs
+
 
 import pandas as pd
 
@@ -55,11 +61,10 @@ class IDK(object):
 		## set paths
 		self.train_data_path = params["train_data_path"]
 		self.test_data_path = params["test_data_path"]
-		self.fig_dir = params["fig_dir"]
-		self.model_dir = params["model_dir"]
-		self.logfile_dir = params["logfile_dir"]
-		self.results_dir = params["results_dir"]
 		self.saving_path = params["saving_path"]
+		self.fig_dir = os.path.join(self.saving_path, params["fig_dir"])
+		self.model_dir = os.path.join(self.saving_path, params["model_dir"])
+		self.logfile_dir = os.path.join(self.saving_path, params["logfile_dir"])
 
 		self.rng_seed = params["rng_seed"]
 		np.random.seed(self.rng_seed)
@@ -104,12 +109,10 @@ class IDK(object):
 			self.input_dim_rf = (1 + self.rf_error_input)*self.input_dim
 			self.output_dim_rf = self.input_dim
 
-		os.makedirs(self.saving_path + self.model_dir, exist_ok=True)
-		os.makedirs(self.saving_path + self.fig_dir, exist_ok=True)
-		os.makedirs(self.saving_path + self.results_dir, exist_ok=True)
-		os.makedirs(self.saving_path + self.logfile_dir, exist_ok=True)
-
-		print('FIGURE PATH:', self.saving_path + self.results_dir)
+		os.makedirs(self.model_dir, exist_ok=True)
+		os.makedirs(self.fig_dir, exist_ok=True)
+		os.makedirs(self.logfile_dir, exist_ok=True)
+		print('FIGURE PATH:', self.fig_dir)
 
 
 	def train(self):
@@ -145,27 +148,28 @@ class IDK(object):
 		# self.doNewSolving()
 		# self.saveModel()
 
-		# Do validation loop over reg_RF
-		# reg_list = [10, 5, 1, 5e-1, 1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 1e-6, 1e-7, 1e-8, 1e-9, 1e-10]
-		reg_list = [10, 1, 0.1, 0.01, 1e-3, 1e-6, 1e-9, 1e-12, 1e-15]
-		# reg_list = [1, 10, 1e-6]
-		best_reg = self.regularization_RF
-		best_quality = 0
-		for reg_rf in reg_list:
-			self.regularization_RF = reg_rf
-			self.doNewSolving()
-			quality_df = self.validate()
-			quality = quality_df.t_valid_050.mean()
-			if quality > best_quality:
-				best_quality = quality
-				best_reg = reg_rf
-				print('Best: ', best_reg, 'with t_valid=', best_quality)
-				self.saveModel()
+		# Do a hyperparameter optimization using a validation step
+		log_reg_list = np.arange(-9,1)
+		pbounds = {'log_regularization_RF': (-20, 4)} #radius, regularization
+		optimizer = BayesianOptimization(f=self.validation_function,
+										pbounds=pbounds,
+										random_state=1)
+		log_path = os.path.join(self.logfile_dir, "BayesOpt_log.json")
+		logger = JSONLogger(path=log_path) #conda version doesnt have RESET feature
+		optimizer.subscribe(Events.OPTIMIZATION_STEP, logger)
+		for log_reg_rf in log_reg_list:
+			optimizer.probe(params={"log_regularization_RF": log_reg_rf}, lazy=True)
+		optimizer.maximize(init_points=1, n_iter=30, acq='ucb')
+		best_param_dict = optimizer.max['params']
+		best_quality = optimizer.max['target']
+		print("Optimal parameters:", best_param_dict, '(quality = {})'.format(best_quality))
 
-		# run final
-		# self.regularization_RF = best_reg
-		# self.doNewSolving()
-		# self.saveModel()
+		# Save final model w/ optimal hyperparameters
+		self.regularization_RF = 10**(float(best_param_dict["log_regularization_RF"]))
+		# for key in best_param_dict:
+		# 	exec("self.{varnm} = {val}".format(varnm=key, val=best_param_dict[key]))
+		self.doNewSolving()
+		self.saveModel()
 
 		# output training statistics
 		self.write_training_stats()
@@ -217,6 +221,15 @@ class IDK(object):
 		# self.saveResults()
 		# self.write_testing_stats()
 		return validate_eval
+
+	def validation_function(self, **kwargs):
+		self.regularization_RF = 10**(float(kwargs["log_regularization_RF"]))
+		# for key in kwargs:
+		# 	exec("self.{varnm} = {val}".format(varnm=key, val=kwargs[key]))
+		self.doNewSolving()
+		quality_df = self.validate()
+		quality = quality_df.t_valid_050.mean()
+		return quality
 
 
 	def testingOnSet(self, setnm, do_plots=True):
@@ -352,7 +365,7 @@ class IDK(object):
 		mse = np.mean( (true_traj - predicted_traj)**2)
 
 		# plot dynamics over time
-		fig_path = self.saving_path + self.fig_dir + "/timewise_fits_{}.png".format(set_name)
+		fig_path = os.path.join(self.fig_dir, "timewise_fits_{}.png".format(set_name))
 		fig, ax = plt.subplots(nrows=self.input_dim, ncols=1,figsize=(12, 12))
 		for k in range(self.input_dim):
 			ax[k].set_ylabel(r"$Y_{k}$".format(k=k), fontsize=12)
@@ -364,7 +377,7 @@ class IDK(object):
 		plt.close()
 
 		# plot errors over time
-		fig_path = self.saving_path + self.fig_dir + "/timewise_errors_{}.png".format(set_name)
+		fig_path = os.path.join(self.fig_dir, "timewise_errors_{}.png".format(set_name))
 		fig, ax = plt.subplots(nrows=self.input_dim, ncols=1,figsize=(12, 12))
 		for k in range(self.input_dim):
 			ax[k].set_ylabel(r"$Y_{k}$".format(k=k), fontsize=12)
@@ -374,7 +387,7 @@ class IDK(object):
 		plt.close()
 
 	def loadModel(self):
-		data_path = self.saving_path + self.model_dir + "/data.pickle"
+		data_path = os.path.join(self.model_dir, "data.pickle")
 		try:
 			with open(data_path, "rb") as file:
 				data = pickle.load(file)
@@ -681,7 +694,7 @@ class IDK(object):
 		# Compute residuals from inversion
 		res = (self.Z + regI) @ W_out_all.T - self.Y
 		mse = np.mean(res**2)
-		print('Inversion MSE for lambda_RF={lrf} is {mse}'.format(lrf=self.regularization_RF, mse=mse))
+		print('Inversion MSE for lambda_RF={lrf} is {mse} with normalized |Wout|={nrm}'.format(lrf=self.regularization_RF, mse=mse, nrm=np.mean(W_out_all**2)))
 		return
 
 	def saveModel(self):
@@ -713,7 +726,7 @@ class IDK(object):
 		"regularization_RF":self.regularization_RF
 		# "first_train_vec": self.first_train_vec
 		}
-		data_path = self.saving_path + self.model_dir + "/data.pickle"
+		data_path = os.path.join(self.model_dir, "data.pickle")
 		with open(data_path, "wb") as file:
 			pickle.dump(data, file, pickle.HIGHEST_PROTOCOL)
 			del data

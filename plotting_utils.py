@@ -34,7 +34,7 @@ def summarize_eps(df, hue, style, output_dir, metric_list):
         plt.close()
 
 def plotMatrixSpectrum(model, A, mat_name):
-    fig_path = model.saving_path + model.fig_dir + model.model_name + "/singular_values_{:}.png".format(mat_name)
+    fig_path = os.path.join(model.fig_dir, "singular_values_{:}.png".format(mat_name))
     try:
         s = svdvals(A)
     except:
@@ -46,7 +46,7 @@ def plotMatrixSpectrum(model, A, mat_name):
     plt.close()
 
     if A.shape[0]==A.shape[1]: #is square
-        fig_path = model.saving_path + model.fig_dir + model.model_name + "/eigenvalues_{:}.png".format(mat_name)
+        fig_path = os.path.join(model.fig_dir, "eigenvalues_{:}.png".format(mat_name))
         try:
             eig = eigvals(A)
         except:
@@ -59,7 +59,7 @@ def plotMatrixSpectrum(model, A, mat_name):
         plt.close()
 
 def plotMatrix(model, A, mat_name):
-    fig_path = model.saving_path + model.fig_dir + "/matrix_{:}.png".format(mat_name)
+    fig_path = os.path.join(model.fig_dir, "matrix_{:}.png".format(mat_name))
     # plot matrix visualizations
     fig, ax = plt.subplots(nrows=1, ncols=2,figsize=(12, 6))
     foo = ax[0].matshow(A, vmin=np.min(A), vmax=np.max(A), aspect='auto')
