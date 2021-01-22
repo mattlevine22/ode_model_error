@@ -464,17 +464,9 @@ class IDK(object):
 	### TRAINING STUFF
 	def set_random_weights(self):
 
-		# First initialize everything to be None
-		self.W_in_markov = None
-		self.b_h_markov = None
-		self.W_out_markov = None
-
 		# initialize markovian random terms for Random Feature Maps
-		b_h_markov = np.random.uniform(low=-self.rf_bias_bound, high=self.rf_bias_bound, size=(self.rf_dim, 1))
-		W_in_markov = np.random.uniform(low=-self.rf_Win_bound, high=self.rf_Win_bound, size=(self.rf_dim, self.input_dim_rf))
-
-		self.W_in_markov = W_in_markov
-		self.b_h_markov = b_h_markov
+		self.b_h_markov = np.random.uniform(low=-self.rf_bias_bound, high=self.rf_bias_bound, size=(self.rf_dim, 1))
+		self.W_in_markov = np.random.uniform(low=-self.rf_Win_bound, high=self.rf_Win_bound, size=(self.rf_dim, self.input_dim_rf))
 
 	def x_t(self, t, t0=0):
 		#linearly interpolate self.x_vec at time t
@@ -717,8 +709,7 @@ class IDK(object):
 				regI = np.tile(regI,(self.input_dim,1))
 
 			pinv_ = scipypinv2(self.Z + regI)
-			# W_out_all = self.Y.T @ pinv_ # old code
-			W_out_all = (pinv_ @ self.Y).T # basically the same...very slight differences due to numerics
+			W_out_all = (pinv_ @ self.Y).T
 			self.W_out_markov = W_out_all
 
 			if do_plots:
@@ -750,7 +741,6 @@ class IDK(object):
 
 		if self.modelType in ['continuousInterp', 'discrete']:
 			data = {
-			# "memory":self.memory,
 			"n_trainable_parameters":self.n_trainable_parameters,
 			"n_model_parameters":self.n_model_parameters,
 			"total_training_time":self.total_training_time,
@@ -758,8 +748,9 @@ class IDK(object):
 			"b_h_markov":self.b_h_markov,
 			"W_out_markov":self.W_out_markov,
 			"scaler":self.scaler,
-			"regularization_RF":self.regularization_RF
-			# "first_train_vec": self.first_train_vec
+			"regularization_RF":self.regularization_RF,
+			"rf_Win_bound":self.rf_Win_bound,
+			"rf_bias_bound":self.rf_bias_bound
 			}
 		elif self.modelType=='discreteGP':
 			data = {
