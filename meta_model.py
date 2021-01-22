@@ -522,7 +522,7 @@ class IDK(object):
 			S = np.hstack( (dZqq, dYq) )
 			return S
 
-	def newMethod_getIC(self, T_warmup, T_train):
+	def newMethod_getIC(self, T_warmup):
 		# generate ICs for training integration
 		yall = []
 
@@ -589,7 +589,7 @@ class IDK(object):
 		t_span = [T_warmup, T_warmup + T_train]
 		step = self.dt/10
 		t_eval = np.linspace(start=t_span[0], stop=t_span[-1], num=int(T_train/step))
-		y0 = self.newMethod_getIC(T_warmup=T_warmup, T_train=T_train)
+		y0 = self.newMethod_getIC(T_warmup=T_warmup)
 
 		if self.component_wise:
 			self.Y = []
