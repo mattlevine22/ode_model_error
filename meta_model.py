@@ -132,8 +132,7 @@ class IDK(object):
 			train_input_sequence = self.subsample(x=data["u_train"][self.trainNumber, :, :self.input_dim], t_end=self.t_train)
 			del data
 		# scale training data
-		train_input_sequence = self.scaler.scaleData(train_input_sequence)
-		self.train_input_sequence = train_input_sequence
+		self.train_input_sequence = self.scaler.scaleData(train_input_sequence)
 
 		if self.f0only:
 			# need to normalize first to store statistics
@@ -190,7 +189,7 @@ class IDK(object):
 		if self.modelType=='continuousInterp':
 			## Random WEIGHTS
 			self.set_random_weights()
-			self.continuousInterpRF(tl=tl, dynamics_length=self.dynamics_length, train_input_sequence=self.train_input_sequence)
+			self.continuousInterpRF()
 		elif 'discrete' in self.modelType:
 			if self.component_wise:
 				raise ValueError('component wise not yet set up for discrete')
@@ -419,18 +418,12 @@ class IDK(object):
 
 	def loadModel(self):
 		data_path = os.path.join(self.model_dir, "data.pickle")
-		try:
-			with open(data_path, "rb") as file:
-				data = pickle.load(file)
-				self.W_in_markov = data["W_in_markov"]
-				self.b_h_markov = data["b_h_markov"]
-				self.W_out_markov = data["W_out_markov"]
-				self.scaler = data["scaler"]
-				# self.first_train_vec = data["first_train_vec"]
-			return 0
-		except:
-			print("MODEL {:s} NOT FOUND.".format(data_path))
-			return 1
+		with open(data_path, "rb") as file:
+			data = pickle.load(file)
+			self.W_in_markov = data["W_in_markov"]
+			self.b_h_markov = data["b_h_markov"]
+			self.W_out_markov = data["W_out_markov"]
+			self.scaler = data["scaler"]
 
 
 	def testingOnTrainingSet(self):
@@ -513,7 +506,10 @@ class IDK(object):
 			m = m[k,None]
 
 		if self.rf_error_input:
-			rf_input = np.hstack((x,m))
+			f0 = self.scaler.scaleXdot(self.f0(t, self.scaler.descaleData(x)))
+			if self.component_wise:
+				f0 = f0[k,None]
+			rf_input = np.hstack((x,f0))
 		else:
 			rf_input = x
 
@@ -534,12 +530,15 @@ class IDK(object):
 			x0 = self.x_t(t=T_warmup)
 			xdot0 = self.xdot_t(t=T_warmup)
 			m0 = self.mscaled(t=T_warmup, x=x0, xdot=xdot0)
+			if self.rf_error_input:
+				f0 = self.scaler.scaleXdot(self.f0(T_warmup, self.scaler.descaleData(x0)))
 			if self.component_wise:
 				for k in range(self.input_dim):
 					x0k = x0[k,None]
 					m0k = m0[k,None]
 					if self.rf_error_input:
-						rf_input = np.hstack((x0k,m0k))
+						f0k = f0[k,None]
+						rf_input = np.hstack((x0k,f0k))
 					else:
 						rf_input = x0k
 					q0k = self.q_t(rf_input)
@@ -549,7 +548,7 @@ class IDK(object):
 					yall.append(y0)
 			else:
 				if self.rf_error_input:
-					rf_input = np.hstack((x0,m0))
+					rf_input = np.hstack((x0,f0))
 				else:
 					rf_input = x0
 				q0 = self.q_t(rf_input)
@@ -561,28 +560,21 @@ class IDK(object):
 
 		return yall
 
-	def continuousInterpRF(self, tl, dynamics_length, train_input_sequence):
+	def continuousInterpRF(self):
 
-		self.x_vec = train_input_sequence
+		self.x_vec = self.train_input_sequence
 		self.n_min = self.x_vec.shape[0]-1
-		self.x_vec_raw = self.scaler.descaleData(train_input_sequence)
+		self.x_vec_raw = self.scaler.descaleData(self.x_vec)
 
 		# get spline derivative
 		t_vec = self.dt*np.arange(self.x_vec.shape[0])
 		self.xdot_spline = [CubicSpline(x=t_vec, y=self.x_vec[:,k]).derivative() for k in range(self.input_dim)]
-		self.xdot_spline_raw = [CubicSpline(x=t_vec, y=self.x_vec_raw[:,k]).derivative() for k in range(self.input_dim)]
 
 		# get m(t) for all time JUST to have its statistics for normalization ahead of time
 		xdot_vec = np.array([self.xdot_spline[k](t_vec) for k in range(self.input_dim)]).T
-		xdot_vec_raw = np.array([self.xdot_spline_raw[k](t_vec) for k in range(self.input_dim)]).T
-
-
-		# troubleshoot
-		xdot0 = np.array([self.xdot_spline[k](0) for k in range(self.input_dim)]).T
-		xdot0_raw = np.array([self.xdot_spline_raw[k](0) for k in range(self.input_dim)]).T
 
 		if self.doResidual:
-			f0_vec = np.array([self.f0(0, x) for x in self.scaler.descaleData(self.x_vec)])
+			f0_vec = np.array([self.f0(0, x) for x in self.x_vec_raw])
 			# xdot(t) = f0(x(t)) + m(t)
 			# so, m(t) = xdot(t) - f0(x(t))
 			m_vec = xdot_vec - self.scaler.scaleXdot(f0_vec)
@@ -652,7 +644,10 @@ class IDK(object):
 				xdot = xdot[k,None]
 				m = m[k,None]
 			if self.rf_error_input:
-				rf_input = np.hstack((x,m))
+				f0 = self.scaler.scaleXdot(self.f0(T_warmup, self.scaler.descaleData(x0)))
+				if self.component_wise:
+					f0 = f0[k,None]
+				rf_input = np.hstack((x,f0))
 			else:
 				rf_input = x
 
