@@ -142,16 +142,10 @@ class IDK(object):
 		# Do the learning!
 		self.setup_the_learning()
 
-		# get answers for default hyperparameters (regularization_RF)
-		# self.doNewSolving()
-		# self.saveModel()
-
 		# Do a hyperparameter optimization using a validation step
 		if self.validate_hyperparameters:
-			# log_reg_list = np.arange(-9,1)
-			# pbounds = {'log_regularization_RF': (-20, 1)}
-			pbounds = {'log_regularization_RF': (-9, 1),
-						'log_rf_Win_bound': (-3,2),
+			# first learn W, b using default regularization
+			pbounds = {'log_rf_Win_bound': (-3,2),
 						'log_rf_bias_bound': (-3,2)}
 			optimizer = BayesianOptimization(f=self.validation_function,
 											pbounds=pbounds,
@@ -165,8 +159,23 @@ class IDK(object):
 			best_param_dict = optimizer.max['params']
 			best_quality = optimizer.max['target']
 			print("Optimal parameters:", best_param_dict, '(quality = {})'.format(best_quality))
-			# Save final model w/ optimal hyperparameters
-			# self.regularization_RF = 10**(float(best_param_dict["log_regularization_RF"]))
+			# re-setup things with optimal parameters (new realization using preferred hyperparams)
+			self.set_BO_keyval(best_param_dict)
+			self.setup_the_learning()
+
+			# now fix the optimal W,b and learn the regularization
+			lambda_validation_f = lambda **kwargs: self.validation_function(setup_learning=False, **kwargs)
+			pbounds = {'log_regularization_RF': (-20, 0)}
+			optimizer = BayesianOptimization(f=lambda_validation_f,
+											pbounds=pbounds,
+											random_state=1)
+			log_path = os.path.join(self.logfile_dir, "BayesOpt_reg_log.json")
+			logger = JSONLogger(path=log_path) #conda version doesnt have RESET feature
+			optimizer.subscribe(Events.OPTIMIZATION_STEP, logger)
+			optimizer.maximize(init_points=5, n_iter=30, acq='ucb')
+			best_param_dict = optimizer.max['params']
+			best_quality = optimizer.max['target']
+			print("Optimal parameters:", best_param_dict, '(quality = {})'.format(best_quality))
 			self.set_BO_keyval(best_param_dict)
 
 		self.doNewSolving()
@@ -240,10 +249,11 @@ class IDK(object):
 				my_varnm = key
 			exec("self.{varnm} = {val}".format(varnm=my_varnm, val=my_val))
 
-	def validation_function(self, **kwargs):
+	def validation_function(self, setup_learning=True, **kwargs):
 		# self.regularization_RF = 10**(float(kwargs["log_regularization_RF"]))
 		self.set_BO_keyval(kwargs)
-		self.setup_the_learning()
+		if setup_learning:
+			self.setup_the_learning()
 		self.doNewSolving(do_plots=False)
 		quality_df = self.validate()
 		quality = quality_df.t_valid_050.mean()

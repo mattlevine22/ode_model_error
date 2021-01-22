@@ -1,6 +1,6 @@
 {
   "validate_hyperparameters": 1,
-  "regularization_RF": 1,
+  "regularization_RF": 0.0001,
   "scaler": "standard",
   "scaler_derivatives": "no",
   "component_wise": 0,
