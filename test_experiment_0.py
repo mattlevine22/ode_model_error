@@ -102,25 +102,25 @@ def prioritized_job_sender(all_job_fnames, bash_command):
     for job_fname in all_job_fnames:
         if 'f0only' in job_fname:
             all_job_fnames.remove(job_fname)
-            submit_job(job_fname, bash_command=cmd_job)
+            submit_job(job_fname, bash_command=bash_command)
 
     # next do data-driven only
     for job_fname in all_job_fnames:
         if 'f0eps-NA' in job_fname:
             all_job_fnames.remove(job_fname)
-            submit_job(job_fname, bash_command=cmd_job)
+            submit_job(job_fname, bash_command=bash_command)
 
     # next do favored experiments
     str_list = ['tTrain-100_', 'rfDim-200_', 'stateType-state_', 'trainNumber-0_']
     for job_fname in all_job_fnames:
         if all(elem in job_fname for elem in str_list):
             all_job_fnames.remove(job_fname)
-            submit_job(job_fname, bash_command=cmd_job)
+            submit_job(job_fname, bash_command=bash_command)
 
     # now send remaining jobs
     for job_fname in all_job_fnames:
         all_job_fnames.remove(job_fname)
-        submit_job(job_fname, bash_command=cmd_job)
+        submit_job(job_fname, bash_command=bash_command)
 
     return
 
