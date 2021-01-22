@@ -8,6 +8,9 @@ from scipy.linalg import pinv2 as scipypinv2
 from scipy.linalg import block_diag
 from scipy.integrate import solve_ivp, trapz
 from scipy.interpolate import CubicSpline
+from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.gaussian_process.kernels import RBF, Matern, WhiteKernel, ConstantKernel
+
 # from scipy.stats import loguniform
 import time
 from functools import partial
@@ -47,7 +50,7 @@ class IDK(object):
 
 		# initialize
 		## new properties
-		self.validate_hyperparameters = 1
+		self.validate_hyperparameters = params["validate_hyperparameters"]
 		self.modelType = params["modelType"]
 		self.stateType = params["stateType"]
 		self.trainNumber = params["trainNumber"]
@@ -130,19 +133,14 @@ class IDK(object):
 			del data
 		# scale training data
 		train_input_sequence = self.scaler.scaleData(train_input_sequence)
+		self.train_input_sequence = train_input_sequence
 
 		if self.f0only:
 			# need to normalize first to store statistics
 			return
 
-		## Random WEIGHTS
-		self.set_random_weights()
-
-		# TRAINING LENGTH
-		tl = train_input_sequence.shape[0] - self.dynamics_length
-
 		# Do the learning!
-		self.setup_the_learning(tl=tl, dynamics_length=self.dynamics_length, train_input_sequence=train_input_sequence)
+		self.setup_the_learning()
 
 		# get answers for default hyperparameters (regularization_RF)
 		# self.doNewSolving()
@@ -150,39 +148,45 @@ class IDK(object):
 
 		# Do a hyperparameter optimization using a validation step
 		if self.validate_hyperparameters:
-			log_reg_list = np.arange(-9,1)
-			pbounds = {'log_regularization_RF': (-20, 4)} #radius, regularization
+			# log_reg_list = np.arange(-9,1)
+			pbounds = {'log_regularization_RF': (-9, 1)}
+			# pbounds = {'log_regularization_RF': (-9, 1),
+			# 			'log_rf_Win_bound': (-3,2),
+			# 			'log_rf_bias_bound': (-3,2)}
 			optimizer = BayesianOptimization(f=self.validation_function,
 											pbounds=pbounds,
 											random_state=1)
 			log_path = os.path.join(self.logfile_dir, "BayesOpt_log.json")
 			logger = JSONLogger(path=log_path) #conda version doesnt have RESET feature
 			optimizer.subscribe(Events.OPTIMIZATION_STEP, logger)
-			for log_reg_rf in log_reg_list:
-				optimizer.probe(params={"log_regularization_RF": log_reg_rf}, lazy=True)
-			optimizer.maximize(init_points=1, n_iter=30, acq='ucb')
+			# for log_reg_rf in log_reg_list:
+			# 	optimizer.probe(params={"log_regularization_RF": log_reg_rf}, lazy=True)
+			optimizer.maximize(init_points=5, n_iter=30, acq='ucb')
 			best_param_dict = optimizer.max['params']
 			best_quality = optimizer.max['target']
 			print("Optimal parameters:", best_param_dict, '(quality = {})'.format(best_quality))
 			# Save final model w/ optimal hyperparameters
-			self.regularization_RF = 10**(float(best_param_dict["log_regularization_RF"]))
+			# self.regularization_RF = 10**(float(best_param_dict["log_regularization_RF"]))
+			self.set_BO_keyval(best_param_dict)
 
-		# for key in best_param_dict:
-		# 	exec("self.{varnm} = {val}".format(varnm=key, val=best_param_dict[key]))
 		self.doNewSolving()
 		self.saveModel()
 
 		# output training statistics
 		self.write_training_stats()
 
-	def setup_the_learning(self, tl, dynamics_length, train_input_sequence):
+	def setup_the_learning(self):
+		tl = self.train_input_sequence.shape[0] - self.dynamics_length
+
 		if self.modelType=='continuousInterp':
-			self.continuousInterpRF(tl=tl, dynamics_length=self.dynamics_length, train_input_sequence=train_input_sequence)
-		elif self.modelType=='discrete':
+			## Random WEIGHTS
+			self.set_random_weights()
+			self.continuousInterpRF(tl=tl, dynamics_length=self.dynamics_length, train_input_sequence=self.train_input_sequence)
+		elif 'discrete' in self.modelType:
 			if self.component_wise:
 				raise ValueError('component wise not yet set up for discrete')
-			x_output = train_input_sequence[1:]
-			x_input = train_input_sequence[:-1]
+			x_output = np.copy(self.train_input_sequence[1:])
+			x_input = np.copy(self.train_input_sequence[:-1])
 			x_input_descaled = self.scaler.descaleData(x_input)
 			if self.usef0:
 				predf0 = self.scaler.scaleData(np.array([self.psi0(x_input_descaled[i]) for i in range(x_input.shape[0])]), reuse=1)
@@ -194,8 +198,7 @@ class IDK(object):
 				x_output -= predf0
 
 			if self.modelType=='discrete':
-				Z = np.zeros((self.rf_dim, self.rf_dim))
-				Y = np.zeros((self.rf_dim, self.input_dim))
+				self.set_random_weights()
 				Q = np.array([self.q_t(rf_input[i]) for i in range(rf_input.shape[0])])
 				self.Z = Q.T @ Q / x_input.shape[0] # normalize by length
 				self.Y = Q.T @ x_output / x_input.shape[0]
@@ -203,6 +206,12 @@ class IDK(object):
 				print('|Z| =', np.mean(self.Z**2))
 				print('|Y| =', np.mean(self.Y**2))
 			elif self.modelType=='discreteGP':
+				GP_ker = ConstantKernel(1.0, (1e-5, 1e5)) * RBF(1.0, (1e-10, 1e+6)) + WhiteKernel(1.0, (1e-10, 1e6))
+				my_gpr = GaussianProcessRegressor(
+					kernel = GP_ker,
+					n_restarts_optimizer = 15,
+					alpha = 1e-10)
+				self.gpr = my_gpr.fit(X=rf_input, y=x_output)
 				return
 
 		# Store something useful for plotting
@@ -221,10 +230,20 @@ class IDK(object):
 		# self.write_testing_stats()
 		return validate_eval
 
+	def set_BO_keyval(self, my_dict):
+		for key in my_dict:
+			if "log_" in key:
+				my_val = 10**(float(my_dict[key]))
+				my_varnm = key.strip('log_')
+			else:
+				my_val = my_dict[key]
+				my_varnm = key
+			exec("self.{varnm} = {val}".format(varnm=my_varnm, val=my_val))
+
 	def validation_function(self, **kwargs):
-		self.regularization_RF = 10**(float(kwargs["log_regularization_RF"]))
-		# for key in kwargs:
-		# 	exec("self.{varnm} = {val}".format(varnm=key, val=kwargs[key]))
+		# self.regularization_RF = 10**(float(kwargs["log_regularization_RF"]))
+		self.set_BO_keyval(kwargs)
+		self.setup_the_learning()
 		self.doNewSolving(do_plots=False)
 		quality_df = self.validate()
 		quality = quality_df.t_valid_050.mean()
@@ -283,7 +302,7 @@ class IDK(object):
 
 	def predict_next(self, x_input, t0=0):
 		u_next = np.zeros(self.input_dim)
-		if self.modelType=='discrete':
+		if 'discrete' in self.modelType:
 			if self.doResidual or self.usef0:
 				pred = self.scaler.scaleData(self.psi0(self.scaler.descaleData(x_input)), reuse=1)
 			else:
@@ -292,7 +311,10 @@ class IDK(object):
 				rf_input = np.hstack((x_input, pred))
 			else:
 				rf_input = x_input
-			u_next = pred + self.W_out_markov @ self.q_t(rf_input)
+			if 'GP' in self.modelType:
+				u_next = pred + self.gpr.predict(rf_input)
+			else:
+				u_next = pred + self.W_out_markov @ self.q_t(rf_input)
 		elif self.modelType=='continuousInterp':
 			u_next = self.forward_solver(x_input=x_input, f_rhs=self.rhs)
 		elif self.modelType=='f0only':
@@ -716,18 +738,25 @@ class IDK(object):
 		# self.memory = memory
 		# print("Script used {:} MB".format(self.memory))
 
-		data = {
-		# "memory":self.memory,
-		"n_trainable_parameters":self.n_trainable_parameters,
-		"n_model_parameters":self.n_model_parameters,
-		"total_training_time":self.total_training_time,
-		"W_in_markov":self.W_in_markov,
-		"b_h_markov":self.b_h_markov,
-		"W_out_markov":self.W_out_markov,
-		"scaler":self.scaler,
-		"regularization_RF":self.regularization_RF
-		# "first_train_vec": self.first_train_vec
-		}
+		if self.modelType in ['continuousInterp', 'discrete']:
+			data = {
+			# "memory":self.memory,
+			"n_trainable_parameters":self.n_trainable_parameters,
+			"n_model_parameters":self.n_model_parameters,
+			"total_training_time":self.total_training_time,
+			"W_in_markov":self.W_in_markov,
+			"b_h_markov":self.b_h_markov,
+			"W_out_markov":self.W_out_markov,
+			"scaler":self.scaler,
+			"regularization_RF":self.regularization_RF
+			# "first_train_vec": self.first_train_vec
+			}
+		elif self.modelType=='discreteGP':
+			data = {
+			"scaler":self.scaler,
+			"total_training_time":self.total_training_time,
+			"gpr": self.gpr
+			}
 		data_path = os.path.join(self.model_dir, "data.pickle")
 		with open(data_path, "wb") as file:
 			pickle.dump(data, file, pickle.HIGHEST_PROTOCOL)
