@@ -91,11 +91,38 @@ def main(cmd_py, output_dir, cmd_job, datagen, conda_env, **kwargs):
     with open(summary_df_name, "wb") as file:
         pickle.dump(summary_df, file, pickle.HIGHEST_PROTOCOL)
 
-    for job_fname in all_job_fnames:
-        submit_job(job_fname, bash_command=cmd_job)
+    prioritized_job_sender(all_job_fnames, bash_command=cmd_job)
 
     if cmd_job=='bash':
         run_summary(output_dir)
+
+
+def prioritized_job_sender(all_job_fnames, bash_command):
+    # start with f0only
+    for job_fname in all_job_fnames:
+        if 'f0only' in job_fname:
+            all_job_fnames.remove(job_fname)
+            submit_job(job_fname, bash_command=cmd_job)
+
+    # next do data-driven only
+    for job_fname in all_job_fnames:
+        if 'f0eps-NA' in job_fname:
+            all_job_fnames.remove(job_fname)
+            submit_job(job_fname, bash_command=cmd_job)
+
+    # next do favored experiments
+    str_list = ['tTrain-100_', 'rfDim-200_', 'stateType-state_', 'trainNumber-0_']
+    for job_fname in all_job_fnames:
+        if all(elem in job_fname for elem in str_list):
+            all_job_fnames.remove(job_fname)
+            submit_job(job_fname, bash_command=cmd_job)
+
+    # now send remaining jobs
+    for job_fname in all_job_fnames:
+        all_job_fnames.remove(job_fname)
+        submit_job(job_fname, bash_command=cmd_job)
+
+    return
 
 def init_summary_df(combined_settings, all_job_fnames):
     summary_df = pd.DataFrame()
