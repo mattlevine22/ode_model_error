@@ -225,7 +225,7 @@ class IDK(object):
 		self.regularization_RF = 10**(float(kwargs["log_regularization_RF"]))
 		# for key in kwargs:
 		# 	exec("self.{varnm} = {val}".format(varnm=key, val=kwargs[key]))
-		self.doNewSolving()
+		self.doNewSolving(do_plots=False)
 		quality_df = self.validate()
 		quality = quality_df.t_valid_050.mean()
 		return quality
@@ -673,7 +673,7 @@ class IDK(object):
 		self.reg_dim = Z.shape[0]
 
 
-	def doNewSolving(self):
+	def doNewSolving(self, do_plots=True):
 		if self.modelType in ['continuousInterp', 'discrete']:
 			print('Solving inverse problem W = (Z+rI)^-1 Y...')
 			# regI = np.identity(self.Z.shape[0])
@@ -689,7 +689,8 @@ class IDK(object):
 			W_out_all = (pinv_ @ self.Y).T # basically the same...very slight differences due to numerics
 			self.W_out_markov = W_out_all
 
-			plotMatrix(self, self.W_out_markov, 'W_out_markov')
+			if do_plots:
+				plotMatrix(self, self.W_out_markov, 'W_out_markov')
 
 			# Compute residuals from inversion
 			res = (self.Z + regI) @ W_out_all.T - self.Y
