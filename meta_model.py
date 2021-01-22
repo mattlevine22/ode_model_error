@@ -149,10 +149,10 @@ class IDK(object):
 		# Do a hyperparameter optimization using a validation step
 		if self.validate_hyperparameters:
 			# log_reg_list = np.arange(-9,1)
-			pbounds = {'log_regularization_RF': (-9, 1)}
-			# pbounds = {'log_regularization_RF': (-9, 1),
-			# 			'log_rf_Win_bound': (-3,2),
-			# 			'log_rf_bias_bound': (-3,2)}
+			# pbounds = {'log_regularization_RF': (-20, 1)}
+			pbounds = {'log_regularization_RF': (-9, 1),
+						'log_rf_Win_bound': (-3,2),
+						'log_rf_bias_bound': (-3,2)}
 			optimizer = BayesianOptimization(f=self.validation_function,
 											pbounds=pbounds,
 											random_state=1)
