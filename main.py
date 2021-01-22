@@ -14,19 +14,14 @@ FLAGS = parser.parse_args()
 # main function
 def main():
     settings = get_settings(settings_path=FLAGS.settings_path)
+    model = IDK(settings=settings)
 
-    # classname = settings['modelType']
-
-    # instantiate model class with specific run settings
-    # https://stackoverflow.com/questions/3451779/how-to-dynamically-create-an-instance-of-a-class-in-python
-    # Model = globals()[classname]
+    # if the model has already been trained, load it.
+    # else, train it
     try:
-        # if the model has already been trained, load it
         model.loadModel()
     except:
-        # train the model
         print('Begin training!')
-        model = IDK(settings=settings)
         model.train()
         model.loadModel() # need to do this because last validation run needs to be cleared
 
