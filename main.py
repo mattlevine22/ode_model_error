@@ -20,15 +20,18 @@ def main():
     # instantiate model class with specific run settings
     # https://stackoverflow.com/questions/3451779/how-to-dynamically-create-an-instance-of-a-class-in-python
     # Model = globals()[classname]
-    model = IDK(settings=settings)
-
-    # train the model
-    print('Begin training!')
-    model.train()
+    try:
+        # if the model has already been trained, load it
+        model.loadModel()
+    except:
+        # train the model
+        print('Begin training!')
+        model = IDK(settings=settings)
+        model.train()
+        model.loadModel() # need to do this because last validation run needs to be cleared
 
     # test the saved model
     print('Begin testing!')
-    model.loadModel() # need to do this because last validation run needs to be cleared
     model.test()
 
     # plot the model performance
