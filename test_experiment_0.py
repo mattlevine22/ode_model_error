@@ -56,8 +56,8 @@ def main(cmd_py, output_dir, cmd_job, datagen, conda_env, **kwargs):
 
     ## HYBRID PHYSICS RUNS
     combined_settings = { 'modelType': ['discrete', 'continuousInterp'],
-                 'rfDim': [200, 2000],
-                 'tTrain': [100, 1000],
+                 'rfDim': [200],
+                 'tTrain': [100],
                  'usef0': [1],
                  'doResidual': [1],
                  'stateType': ['state', 'stateAndPred'],
