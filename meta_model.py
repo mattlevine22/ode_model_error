@@ -295,13 +295,18 @@ class IDK(object):
 		return eval_dict
 
 	def make_predictions(self, ic, t_end):
-		prediction = []
-		n_steps = int(t_end / self.dt)
-		for n in range(n_steps):
-			# t = n*dt
+		if 'discrete' in self.modelType:
+			prediction = []
 			prediction.append(ic)
-			ic = self.predict_next(x_input=ic)
-		prediction = np.array(prediction)
+			n_steps = int(t_end / self.dt)
+			for n in range(n_steps):
+				ic = self.predict_next(x_input=ic)
+				prediction.append(ic)
+			prediction = np.array(prediction)
+		elif 'continuous' in self.modelType:
+			N = int(t_end / self.dt) + 1
+			t_eval = self.dt*np.arange(N)
+			prediction = self.my_solve_ivp(ic=ic, f_rhs=self.rhs, t_eval=t_eval)
 		return prediction
 
 
@@ -334,6 +339,24 @@ class IDK(object):
 		return np.squeeze(u_next)
 
 
+	def my_solve_ivp(self, ic, f_rhs, t_eval, **kwargs):
+		solver = self.test_integrator
+		u0 = np.copy(ic)
+		if solver=='Euler':
+			u_sol = np.zeros((len(t_eval), len(ic)))
+			u_sol[0] = u0
+			for i in range(len(t_eval)-1):
+				t = t_eval[i]
+				rhs = f_rhs(t, u0)
+				u0 += self.dt * rhs
+				u_sol[i] = u0
+		elif solver=='RK45':
+			t_span = [t_eval[0], t_eval[-1]]
+			sol = solve_ivp(fun=lambda t, y: f_rhs(t, y), t_span=t_span, y0=u0, t_eval=t_eval, max_step=self.dt/10)
+			u_sol = sol.y.T
+		return u_sol
+
+
 	def forward_solver(self, x_input, f_rhs, t0=0):
 		solver = self.test_integrator
 		u0 = np.copy(x_input)
@@ -352,7 +375,7 @@ class IDK(object):
 		elif solver=='RK45':
 			t_span = [t0, t0+self.dt]
 			t_eval = np.array([t0+self.dt])
-			sol = solve_ivp(fun=lambda t, y: f_rhs(t, y), t_span=t_span, y0=u0, t_eval=t_eval, max_step=self.dt/10)
+			sol = solve_ivp(fun=lambda t, y: f_rhs(t, y), t_span=t_span, y0=u0, t_eval=t_eval)
 			u_next = sol.y
 
 		u_next = np.squeeze(u_next)
@@ -448,7 +471,7 @@ class IDK(object):
 
 	def subsample(self, x, t_end):
 		# x: time x dims
-		n_stop = int(t_end / self.dt_rawdata)
+		n_stop = int(t_end / self.dt_rawdata) + 1
 		keep_inds = [int(j) for j in np.arange(0, n_stop, self.dt / self.dt_rawdata)]
 		x_sub = x[keep_inds]
 		return x_sub
@@ -581,7 +604,6 @@ class IDK(object):
 			self.scaler.scaleM(m_vec) # just stores statistics
 		else:
 			self.scaler.scaleM(xdot_vec) # just stores statistics
-
 
 		# T_warmup = self.dt*dynamics_length
 		T_warmup = 0
