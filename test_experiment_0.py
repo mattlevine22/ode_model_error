@@ -177,7 +177,8 @@ def run_summary(output_dir):
                 plot_output_dir = os.path.join(output_dir, 'summary_plots_eps{eps}_tTrain{t}_rfdim{rfd}'.format(eps=eps, t=t, rfd=rfd))
                 os.makedirs(plot_output_dir, exist_ok=True)
                 try:
-                    summarize(df=summary_df[(summary_df.eps==eps) & (summary_df.tTrain==t) & (summary_df.rfDim==rfd)], style='usef0', hue='type', x="dt", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='dt_{}')
+                    summarize(df=summary_df[(summary_df.f0eps==f0eps) & (summary_df.tTrain==t) & (summary_df.rfDim==rfd)], style='usef0', hue='type', x="dt", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='dt_{}')
+                    summarize(df=summary_df[(summary_df.f0eps==f0eps) & (summary_df.tTrain==t) & (summary_df.rfDim==rfd)], style='usef0', hue='type', x="dt", output_dir=plot_output_dir, metric_list=hyperparam_list, fname_shape='dt_{}')
                 except:
                     print('plot failed for:', plot_output_dir)
 
