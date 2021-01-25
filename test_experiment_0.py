@@ -104,6 +104,8 @@ def prioritized_job_sender(all_job_fnames, bash_command):
             all_job_fnames.remove(job_fname)
             submit_job(job_fname, bash_command=bash_command)
 
+    pdb.set_trace()
+
     # next do data-driven only
     for job_fname in all_job_fnames:
         if 'f0eps-NA' in job_fname:

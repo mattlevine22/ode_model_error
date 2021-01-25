@@ -136,7 +136,6 @@ class IDK(object):
 
 		if self.f0only:
 			self.saveModel()
-			# need to normalize first to store statistics
 			return
 
 		# Do the learning!
