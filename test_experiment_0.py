@@ -99,15 +99,6 @@ def main(cmd_py, output_dir, cmd_job, datagen, conda_env, **kwargs):
 
 def prioritized_job_sender(all_job_fnames, bash_command):
     # start with f0only
-    for job_fname in all_job_fnames:
-        if job_fname==all_job_fnames[309]:
-            pdb.set_trace()
-
-    for i in range(len(all_job_fnames)):
-        job_fname = all_job_fnames[i]
-        if i == 309:
-            pdb.set_trace()
-
     rmv_nms = []
     for job_fname in all_job_fnames:
         if 'f0only' in job_fname:
@@ -115,25 +106,29 @@ def prioritized_job_sender(all_job_fnames, bash_command):
             submit_job(job_fname, bash_command=bash_command)
     [all_job_fnames.remove(nm) for nm in rmv_nms]
 
-    pdb.set_trace()
-    
     # next do data-driven only
+    rmv_nms = []
     for job_fname in all_job_fnames:
         if 'f0eps-NA' in job_fname:
             all_job_fnames.remove(job_fname)
             submit_job(job_fname, bash_command=bash_command)
+    [all_job_fnames.remove(nm) for nm in rmv_nms]
 
     # next do favored experiments
     str_list = ['tTrain-100_', 'rfDim-200_', 'stateType-state_', 'trainNumber-0_']
+    rmv_nms = []
     for job_fname in all_job_fnames:
         if all(elem in job_fname for elem in str_list):
             all_job_fnames.remove(job_fname)
             submit_job(job_fname, bash_command=bash_command)
+    [all_job_fnames.remove(nm) for nm in rmv_nms]
 
     # now send remaining jobs
+    rmv_nms = []
     for job_fname in all_job_fnames:
         all_job_fnames.remove(job_fname)
         submit_job(job_fname, bash_command=bash_command)
+    [all_job_fnames.remove(nm) for nm in rmv_nms]
 
     return
 
