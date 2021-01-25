@@ -105,7 +105,7 @@ def prioritized_job_sender(all_job_fnames, bash_command):
 
     for i in range(len(all_job_fnames)):
         job_fname = all_job_fnames[i]
-        if job_fname==all_job_fnames[309]:
+        if i == 309:
             pdb.set_trace()
 
 
