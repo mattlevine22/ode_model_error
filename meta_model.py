@@ -135,6 +135,7 @@ class IDK(object):
 		self.train_input_sequence = self.scaler.scaleData(train_input_sequence)
 
 		if self.f0only:
+			self.saveModel()
 			# need to normalize first to store statistics
 			return
 
@@ -443,10 +444,11 @@ class IDK(object):
 		data_path = os.path.join(self.model_dir, "data.pickle")
 		with open(data_path, "rb") as file:
 			data = pickle.load(file)
-			self.W_in_markov = data["W_in_markov"]
-			self.b_h_markov = data["b_h_markov"]
-			self.W_out_markov = data["W_out_markov"]
 			self.scaler = data["scaler"]
+			if not self.f0only:
+				self.W_in_markov = data["W_in_markov"]
+				self.b_h_markov = data["b_h_markov"]
+				self.W_out_markov = data["W_out_markov"]
 
 
 	def testingOnTrainingSet(self):
@@ -740,12 +742,6 @@ class IDK(object):
 			pass
 
 	def saveModel(self):
-		self.n_trainable_parameters = np.size(self.W_out_markov)
-		self.n_model_parameters = np.size(self.W_in_markov) + np.size(self.b_h_markov)
-		self.n_model_parameters += self.n_trainable_parameters
-		print("Number of trainable parameters: {}".format(self.n_trainable_parameters))
-		print("Total number of parameters: {}".format(self.n_model_parameters))
-
 		# print("Recording time...")
 		self.total_training_time = time.time() - self.start_time
 		print("Total training time is {:2.2f} minutes".format(self.total_training_time/60))
@@ -755,8 +751,16 @@ class IDK(object):
 		# memory = process.memory_info().rss/1024/1024
 		# self.memory = memory
 		# print("Script used {:} MB".format(self.memory))
-
-		if self.modelType in ['continuousInterp', 'discrete']:
+		if self.f0only:
+			data = {
+			"scaler":self.scaler
+			}
+		elif self.modelType in ['continuousInterp', 'discrete']:
+			self.n_trainable_parameters = np.size(self.W_out_markov)
+			self.n_model_parameters = np.size(self.W_in_markov) + np.size(self.b_h_markov)
+			self.n_model_parameters += self.n_trainable_parameters
+			print("Number of trainable parameters: {}".format(self.n_trainable_parameters))
+			print("Total number of parameters: {}".format(self.n_model_parameters))
 			data = {
 			"n_trainable_parameters":self.n_trainable_parameters,
 			"n_model_parameters":self.n_model_parameters,
