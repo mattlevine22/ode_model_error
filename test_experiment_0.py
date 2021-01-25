@@ -107,6 +107,7 @@ def prioritized_job_sender(all_job_fnames, bash_command):
             submit_job(job_fname, bash_command=bash_command)
         elif job_fname=='/groups/astuart/mlevine/ode_model_error/experiments/debugging11/doResidual-1_dt-0.1_f0eps-0.5_modelType-f0only_rfDim-200_stateType-state_tTrain-100_trainNumber-1_usef0-1/jobbie.job':
             pdb.set_trace()
+    pdb.set_trace()
 
     # next do data-driven only
     for job_fname in all_job_fnames:
