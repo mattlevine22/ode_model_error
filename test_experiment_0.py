@@ -171,10 +171,10 @@ def run_summary(output_dir):
                     print('plot failed for:', plot_output_dir)
 
     ## DeltaT-based summary
-    for eps in summary_df.f0eps.unique():
+    for f0eps in summary_df.f0eps.unique():
         for t in summary_df.tTrain.unique():
             for rfd in summary_df.rfDim.unique():
-                plot_output_dir = os.path.join(output_dir, 'summary_plots_eps{eps}_tTrain{t}_rfdim{rfd}'.format(eps=eps, t=t, rfd=rfd))
+                plot_output_dir = os.path.join(output_dir, 'summary_plots_f0eps{f0eps}_tTrain{t}_rfdim{rfd}'.format(f0eps=f0eps, t=t, rfd=rfd))
                 os.makedirs(plot_output_dir, exist_ok=True)
                 try:
                     pdb.set_trace()
