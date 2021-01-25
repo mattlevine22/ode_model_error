@@ -110,7 +110,7 @@ def prioritized_job_sender(all_job_fnames, bash_command):
     rmv_nms = []
     for job_fname in all_job_fnames:
         if 'f0eps-NA' in job_fname:
-            all_job_fnames.remove(job_fname)
+            rmv_nms.append(job_fname)
             submit_job(job_fname, bash_command=bash_command)
     [all_job_fnames.remove(nm) for nm in rmv_nms]
 
@@ -119,16 +119,13 @@ def prioritized_job_sender(all_job_fnames, bash_command):
     rmv_nms = []
     for job_fname in all_job_fnames:
         if all(elem in job_fname for elem in str_list):
-            all_job_fnames.remove(job_fname)
+            rmv_nms.append(job_fname)
             submit_job(job_fname, bash_command=bash_command)
     [all_job_fnames.remove(nm) for nm in rmv_nms]
 
     # now send remaining jobs
-    rmv_nms = []
     for job_fname in all_job_fnames:
-        all_job_fnames.remove(job_fname)
         submit_job(job_fname, bash_command=bash_command)
-    [all_job_fnames.remove(nm) for nm in rmv_nms]
 
     return
 
