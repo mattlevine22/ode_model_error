@@ -115,7 +115,7 @@ def prioritized_job_sender(all_job_fnames, bash_command):
     [all_job_fnames.remove(nm) for nm in rmv_nms]
 
     # next do favored experiments
-    str_list = ['tTrain-100_', 'rfDim-200_', 'stateType-state_', 'trainNumber-0_']
+    str_list = ['tTrain-100_', 'rfDim-200_', 'stateType-state_']
     rmv_nms = []
     for job_fname in all_job_fnames:
         if all(elem in job_fname for elem in str_list):
