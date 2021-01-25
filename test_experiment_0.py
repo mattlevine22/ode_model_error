@@ -100,6 +100,16 @@ def main(cmd_py, output_dir, cmd_job, datagen, conda_env, **kwargs):
 def prioritized_job_sender(all_job_fnames, bash_command):
     # start with f0only
     for job_fname in all_job_fnames:
+        if job_fname==all_job_fnames[309]:
+            pdb.set_trace()
+
+    for i in range(len(all_job_fnames)):
+        job_fname = all_job_fnames[i]
+        if job_fname==all_job_fnames[309]:
+            pdb.set_trace()
+
+
+    for job_fname in all_job_fnames:
         if 'f0only' in job_fname:
             all_job_fnames.remove(job_fname)
             print(job_fname)
