@@ -296,7 +296,7 @@ class IDK(object):
 		return eval_dict
 
 	def make_predictions(self, ic, t_end):
-		if 'discrete' in self.modelType:
+		if 'discrete' in self.modelType or self.f0only:
 			prediction = []
 			prediction.append(ic)
 			n_steps = int(t_end / self.dt)
