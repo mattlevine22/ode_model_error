@@ -155,14 +155,27 @@ def run_summary(output_dir):
     with open(summary_df_name, "rb") as file:
         summary_df = pickle.load(file)
     summary_df = df_eval(df=summary_df)
-    metric_list = ['rmse_total', 't_valid_050', 't_valid_005']
+    metric_list = ['rmse_total', 't_valid_050', 't_valid_005', 'regularization_RF', 'rf_Win_bound', 'rf_bias_bound']
+
+    ## Epsilon-based summary
     for dt in summary_df.dt.unique():
         for t in summary_df.tTrain.unique():
             for rfd in summary_df.rfDim.unique():
                 plot_output_dir = os.path.join(output_dir, 'summary_plots_dt{dt}_tTrain{t}_rfdim{rfd}'.format(dt=dt, t=t, rfd=rfd))
                 os.makedirs(plot_output_dir, exist_ok=True)
                 try:
-                    summarize_eps(df=summary_df[(summary_df.dt==dt) & (summary_df.tTrain==t) & (summary_df.rfDim==rfd)], style='usef0', hue='type', output_dir=plot_output_dir, metric_list=metric_list)
+                    summarize(df=summary_df[(summary_df.dt==dt) & (summary_df.tTrain==t) & (summary_df.rfDim==rfd)], style='usef0', hue='type', x="f0eps", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='eps_{}')
+                except:
+                    print('plot failed for:', plot_output_dir)
+
+    ## DeltaT-based summary
+    for eps in summary_df.f0eps.unique():
+        for t in summary_df.tTrain.unique():
+            for rfd in summary_df.rfDim.unique():
+                plot_output_dir = os.path.join(output_dir, 'summary_plots_eps{eps}_tTrain{t}_rfdim{rfd}'.format(eps=eps, t=t, rfd=rfd))
+                os.makedirs(plot_output_dir, exist_ok=True)
+                try:
+                    summarize(df=summary_df[(summary_df.eps==eps) & (summary_df.tTrain==t) & (summary_df.rfDim==rfd)], style='usef0', hue='type', x="dt", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='dt_{}')
                 except:
                     print('plot failed for:', plot_output_dir)
 
@@ -173,22 +186,8 @@ if __name__ == '__main__':
     elif FLAGS.mode=='plot':
         run_summary(output_dir=FLAGS.output_dir)
 
-# def build_job(settings, settings_path, submit_job, fake=True):
-#     command_flag_dict = {'settings_path': settings_path}
-#     jobfile_dir = settings_path.strip('.json')
-#     jobstatus, jobnum = make_and_deploy(bash_run_command=CMD_run_fits,
-#         command_flag_dict=command_flag_dict,
-#         jobfile_dir=jobfile_dir,
-#         master_job_file=master_job_file, no_submit=submit_job)
-#
-#     if jobstatus!=0:
-#         print('Quitting because job failed!')
-#     else:
-#         return jobfile_dir
 
-
-
-
+### Runs
 # -f0-only + {w/ f0, w/out f0} X {m(x), m(f0(x)), m(x,f0(x))}
 # -continuous via finite difference, continuous via interp-diff-integrate, discrete
 
@@ -207,7 +206,5 @@ if __name__ == '__main__':
 ## f0-eps vs {t_valid, KL, ACF-error} w/ errorbars for a given DT and training set size
 
 ## DT vs {t_valid, KL, ACF-error} w/ errorbars for a given f0-eps and training set size
-
-## training set size vs {t_valid, KL, ACF-error} w/ errorbars for a given DT and f0-eps
 
 ## training set size vs {t_valid, KL, ACF-error} w/ errorbars for a given DT and f0-eps

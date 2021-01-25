@@ -25,11 +25,11 @@ matplotlib.rc('font', **font)
 
 import pdb
 
-def summarize_eps(df, hue, style, output_dir, metric_list):
+def summarize(df, hue, style, output_dir, metric_list, x="f0eps", fname_shape='summary_eps_{}'):
     for metric in metric_list:
-        fig_path = os.path.join(output_dir, 'summary_eps_{}'.format(metric))
+        fig_path = os.path.join(output_dir, fname_shape.format(metric))
         fig, ax = plt.subplots(nrows=1, ncols=1,figsize=(12, 12))
-        sns.lineplot(ax=ax, data=df, x="f0eps", y=metric, style=style, hue=hue, err_style='bars')
+        sns.lineplot(ax=ax, data=df, x=x, y=metric, style=style, hue=hue, err_style='bars')
         plt.savefig(fig_path)
         plt.close()
 
