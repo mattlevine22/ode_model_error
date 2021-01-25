@@ -108,17 +108,15 @@ def prioritized_job_sender(all_job_fnames, bash_command):
         if i == 309:
             pdb.set_trace()
 
-
+    rmv_nms = []
     for job_fname in all_job_fnames:
         if 'f0only' in job_fname:
-            all_job_fnames.remove(job_fname)
-            print(job_fname)
-            print(len(all_job_fnames))
+            rmv_nms.append(job_fname)
             submit_job(job_fname, bash_command=bash_command)
-        elif job_fname == all_job_fnames[309]:
-            pdb.set_trace()
-    pdb.set_trace()
+    [all_job_fnames.remove(nm) for nm in rmv_nms]
 
+    pdb.set_trace()
+    
     # next do data-driven only
     for job_fname in all_job_fnames:
         if 'f0eps-NA' in job_fname:
