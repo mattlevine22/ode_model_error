@@ -91,41 +91,28 @@ def main(cmd_py, output_dir, cmd_job, datagen, conda_env, **kwargs):
     with open(summary_df_name, "wb") as file:
         pickle.dump(summary_df, file, pickle.HIGHEST_PROTOCOL)
 
-    prioritized_job_sender(all_job_fnames, bash_command=cmd_job)
+    lop = [['f0only'], ['f0eps-NA'], ['tTrain-100_', 'rfDim-200_', 'stateType-state_']]
+    prioritized_job_sender(all_job_fnames,
+                            bash_command=cmd_job,
+                            list_of_priorities=lop)
 
     if cmd_job=='bash':
         run_summary(output_dir)
 
 
-def prioritized_job_sender(all_job_fnames, bash_command):
-    # start with f0only
-    rmv_nms = []
-    for job_fname in all_job_fnames:
-        if 'f0only' in job_fname:
-            rmv_nms.append(job_fname)
-            submit_job(job_fname, bash_command=bash_command)
-    [all_job_fnames.remove(nm) for nm in rmv_nms]
+def prioritized_job_sender(all_job_fnames, bash_command, list_of_priorities):
 
-    # next do data-driven only
-    rmv_nms = []
-    for job_fname in all_job_fnames:
-        if 'f0eps-NA' in job_fname:
-            rmv_nms.append(job_fname)
-            submit_job(job_fname, bash_command=bash_command)
-    [all_job_fnames.remove(nm) for nm in rmv_nms]
+    list_of_priorities.append(['']) # this includes all remaining things at the end
+    for check_list in list_of_priorities:
+        rmv_nms = []
+        for job_fname in all_job_fnames:
+            if all(elem in job_fname for elem in str_list):
+                rmv_nms.append(job_fname)
+                submit_job(job_fname, bash_command=bash_command)
+        [all_job_fnames.remove(nm) for nm in rmv_nms]
 
-    # next do favored experiments
-    str_list = ['tTrain-100_', 'rfDim-200_', 'stateType-state_']
-    rmv_nms = []
-    for job_fname in all_job_fnames:
-        if all(elem in job_fname for elem in str_list):
-            rmv_nms.append(job_fname)
-            submit_job(job_fname, bash_command=bash_command)
-    [all_job_fnames.remove(nm) for nm in rmv_nms]
-
-    # now send remaining jobs
-    for job_fname in all_job_fnames:
-        submit_job(job_fname, bash_command=bash_command)
+    if len(all_job_fnames):
+        [submit_job(j, bash_command=bash_command)] for j in all_job_fnames]
 
     return
 
