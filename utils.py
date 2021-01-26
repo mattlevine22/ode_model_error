@@ -21,7 +21,7 @@ def df_eval(df):
         try:
             with open(test_fname, "rb") as file:
                 data = pickle.load(file)
-            data['eval_pickle_fname'] = fname
+            data['eval_pickle_fname'] = test_fname
             data['testNumber'] = data.index
             # now add hyperparam info
             try:
