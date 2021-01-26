@@ -23,14 +23,15 @@ def df_eval(df):
             data['eval_pickle_fname'] = test_fname
             data['testNumber'] = data.index
             # now add hyperparam info
-            try:
-                with open(model_fname, "rb") as file:
-                    model = pickle.load(file)
-                data['regularization_RF'] = model['regularization_RF']
-                data['rf_Win_bound'] = model['rf_Win_bound']
-                data['rf_bias_bound'] = model['rf_bias_bound']
-            except:
-                pass
+            if 'regularization_RF' not in data:
+                try:
+                    with open(model_fname, "rb") as file:
+                        model = pickle.load(file)
+                    data['regularization_RF'] = model['regularization_RF']
+                    data['rf_Win_bound'] = model['rf_Win_bound']
+                    data['rf_bias_bound'] = model['rf_bias_bound']
+                except:
+                    pass
             sub_df = pd.merge(df, data, on='eval_pickle_fname')
             df_list.append(sub_df)
         except:
