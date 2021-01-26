@@ -15,7 +15,6 @@ def df_eval(df):
     # read in things
     df_list = []
     for i in range(len(df)):
-        pdb.set_trace()
         test_fname = df.eval_pickle_fname.iloc[i]
         model_fname = df.model_fname.iloc[i]
         try:
