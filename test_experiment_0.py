@@ -103,7 +103,7 @@ def declare_jobs(data_pathname, datagen_settings, output_dir, master_job_file, c
     combined_settings['modelType'] = ['discrete', 'continuousInterp']
     all_job_fnames += queue_joblist(combined_settings=combined_settings, shared_settings=shared_settings, output_dir=output_dir, master_job_file=master_job_file, cmd=cmd_py, conda_env=conda_env)
 
-    return all_job_fnames
+    return all_job_fnames, combined_settings
 
 def prioritized_job_sender(all_job_fnames, bash_command, list_of_priorities):
 
