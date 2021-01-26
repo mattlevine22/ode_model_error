@@ -181,10 +181,10 @@ def run_summary(output_dir):
 
 
 if __name__ == '__main__':
-    if FLAGS.mode=='all':
-        main(**FLAGS.__dict__)
-    elif FLAGS.mode=='plot':
-        run_summary(output_dir=FLAGS.output_dir)
+    # if FLAGS.mode=='all':
+    main(**FLAGS.__dict__)
+    # elif FLAGS.mode=='plot':
+    #     run_summary(output_dir=FLAGS.output_dir)
 
 
 ### Runs
