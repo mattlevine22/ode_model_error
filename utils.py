@@ -18,6 +18,7 @@ def df_eval(df):
         try:
             with open(fname, "rb") as file:
                 data = pickle.load(file)
+            pdb.set_trace()
             data['eval_pickle_fname'] = fname
             data['testNumber'] = data.index
             sub_df = pd.merge(df, data, on='eval_pickle_fname')
