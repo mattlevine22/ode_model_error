@@ -24,8 +24,6 @@ def main(cmd_py, output_dir, cmd_job, datagen, conda_env, **kwargs):
     if conda_env=='':
         conda_env = None
 
-    all_job_fnames = []
-
     os.makedirs(output_dir, exist_ok=True)
 
     master_job_file = os.path.join(output_dir,'master_job_file.txt')
@@ -68,6 +66,7 @@ def main(cmd_py, output_dir, cmd_job, datagen, conda_env, **kwargs):
         run_summary(output_dir)
 
 def declare_jobs(data_pathname, datagen_settings, output_dir, master_job_file, cmd_py, conda_env):
+    all_job_fnames = []
     shared_settings = {'data_pathname': data_pathname,
                         'f0_name': 'L63',
                         'input_dim': 3,
