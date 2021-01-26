@@ -12,6 +12,7 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('--mode', default='run', type=str)
 parser.add_argument('--datagen', default=1, type=int)
+parser.add_argument('--regen', default=0, type=int)
 parser.add_argument('--cmd_py', default='python3 main.py', type=str)
 parser.add_argument('--output_dir', default='/groups/astuart/mlevine/ode_model_error/experiments/l63eps_v0/', type=str)
 parser.add_argument('--cmd_job', default='bash', type=str)
@@ -48,13 +49,14 @@ def main(cmd_py, output_dir, cmd_job, datagen, conda_env, **kwargs):
         generate_data(ode=L63(), **datagen_settings)
 
     ## Get Job List
-    all_job_fnames, combined_settings = declare_jobs(data_pathname, datagen_settings, output_dir, master_job_file, cmd_py, conda_env)
+    if kwargs['regen'] or kwargs['mode']=='all':
+        all_job_fnames, combined_settings = declare_jobs(data_pathname, datagen_settings, output_dir, master_job_file, cmd_py, conda_env)
 
-    # collect job dirs and enumerate their properties
-    summary_df = init_summary_df(combined_settings, all_job_fnames)
-    summary_df_name = os.path.join(output_dir, 'summary_df.pickle')
-    with open(summary_df_name, "wb") as file:
-        pickle.dump(summary_df, file, pickle.HIGHEST_PROTOCOL)
+        # collect job dirs and enumerate their properties
+        summary_df = init_summary_df(combined_settings, all_job_fnames)
+        summary_df_name = os.path.join(output_dir, 'summary_df.pickle')
+        with open(summary_df_name, "wb") as file:
+            pickle.dump(summary_df, file, pickle.HIGHEST_PROTOCOL)
 
     if kwargs['mode']=='run':
         lop = [['f0only'], ['f0eps-NA'], ['tTrain-100_', 'rfDim-200_', 'stateType-state_']]
@@ -158,7 +160,6 @@ def run_summary(output_dir):
                 plot_output_dir = os.path.join(output_dir, 'summary_plots_dt{dt}_tTrain{t}_rfdim{rfd}'.format(dt=dt, t=t, rfd=rfd))
                 os.makedirs(plot_output_dir, exist_ok=True)
                 try:
-                    pdb.set_trace()
                     summarize(df=summary_df[(summary_df.stateType!='stateAndPred') & (summary_df.dt==dt) & (summary_df.tTrain==t) & (summary_df.rfDim==rfd)], style='usef0', hue='type', x="f0eps", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='eps_{}')
                     summarize(df=summary_df[(summary_df.dt==dt) & (summary_df.tTrain==t) & (summary_df.rfDim==rfd)], style='usef0', hue='type', x="f0eps", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='eps_all_{}')
                     summarize(df=summary_df[(summary_df.dt==dt) & (summary_df.tTrain==t) & (summary_df.rfDim==rfd)], style='usef0', hue='type', x="f0eps", output_dir=plot_output_dir, metric_list=hyperparam_list, fname_shape='eps_all_{}')
