@@ -15,17 +15,16 @@ def df_eval(df):
     # read in things
     df_list = []
     for i in range(len(df)):
-        pdb.set_trace()
         test_fname = df.eval_pickle_fname.iloc[i]
         model_fname = df.model_fname.iloc[i]
         try:
-            with open(fname, "rb") as file:
+            with open(test_fname, "rb") as file:
                 data = pickle.load(file)
             data['eval_pickle_fname'] = fname
             data['testNumber'] = data.index
             # now add hyperparam info
             try:
-                with open(fname, "rb") as file:
+                with open(model_fname, "rb") as file:
                     model = pickle.load(file)
                 data['regularization_RF'] = model['regularization_RF']
                 data['rf_Win_bound'] = model['rf_Win_bound']
