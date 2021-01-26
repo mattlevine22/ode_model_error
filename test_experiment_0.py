@@ -152,6 +152,7 @@ def run_summary(output_dir):
                 plot_output_dir = os.path.join(output_dir, 'summary_plots_dt{dt}_tTrain{t}_rfdim{rfd}'.format(dt=dt, t=t, rfd=rfd))
                 os.makedirs(plot_output_dir, exist_ok=True)
                 try:
+                    pdb.set_trace()
                     summarize(df=summary_df[(summary_df.modelType!='stateAndPred') & (summary_df.dt==dt) & (summary_df.tTrain==t) & (summary_df.rfDim==rfd)], style='usef0', hue='type', x="f0eps", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='eps_{}')
                     summarize(df=summary_df[(summary_df.dt==dt) & (summary_df.tTrain==t) & (summary_df.rfDim==rfd)], style='usef0', hue='type', x="f0eps", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='eps_all_{}')
                     summarize(df=summary_df[(summary_df.dt==dt) & (summary_df.tTrain==t) & (summary_df.rfDim==rfd)], style='usef0', hue='type', x="f0eps", output_dir=plot_output_dir, metric_list=hyperparam_list, fname_shape='eps_all_{}')
