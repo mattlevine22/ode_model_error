@@ -124,6 +124,7 @@ def init_summary_df(combined_settings, all_job_fnames):
         # determine the value of each my_var
         var_dict = parse_output_path(job_dir, nm_list=my_vars)
         var_dict['eval_pickle_fname'] = os.path.join(job_dir, 'test_eval.pickle')
+        var_dict['model_fname'] = os.path.join(job_dir, 'Trained_Models/data.pickle')
         if var_dict['modelType']=='f0only':
             var_dict['type'] = 'f0only'
         else:

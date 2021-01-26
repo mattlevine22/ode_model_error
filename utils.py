@@ -14,13 +14,23 @@ import pdb
 def df_eval(df):
     # read in things
     df_list = []
-    for fname in df.eval_pickle_fname:
+    for i in range(len(df)):
+        test_fname = df.eval_pickle_fname.iloc[i]
+        model_fname = df.model_fname.iloc[i]
         try:
             with open(fname, "rb") as file:
                 data = pickle.load(file)
-            pdb.set_trace()
             data['eval_pickle_fname'] = fname
             data['testNumber'] = data.index
+            # now add hyperparam info
+            try:
+                with open(fname, "rb") as file:
+                    model = pickle.load(file)
+                data['regularization_RF'] = model['regularization_RF']
+                data['rf_Win_bound'] = model['rf_Win_bound']
+                data['rf_bias_bound'] = model['rf_bias_bound']
+            except:
+                pass
             sub_df = pd.merge(df, data, on='eval_pickle_fname')
             df_list.append(sub_df)
         except:
