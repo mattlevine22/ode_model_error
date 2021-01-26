@@ -10,7 +10,7 @@ import argparse
 
 # CMD_generate_data_wrapper = 'python3 $HOME/mechRNN/experiments/scripts/generate_data_wrapper.py'
 parser = argparse.ArgumentParser()
-parser.add_argument('--mode', default='all', type=str)
+parser.add_argument('--mode', default='run', type=str)
 parser.add_argument('--datagen', default=1, type=int)
 parser.add_argument('--cmd_py', default='python3 main.py', type=str)
 parser.add_argument('--output_dir', default='/groups/astuart/mlevine/ode_model_error/experiments/l63eps_v0/', type=str)
@@ -49,6 +49,25 @@ def main(cmd_py, output_dir, cmd_job, datagen, conda_env, **kwargs):
     if datagen:
         generate_data(ode=L63(), **datagen_settings)
 
+    ## Get Job List
+    all_job_fnames, combined_settings = declare_jobs(data_pathname, datagen_settings, output_dir, master_job_file, cmd_py, conda_env)
+
+    # collect job dirs and enumerate their properties
+    summary_df = init_summary_df(combined_settings, all_job_fnames)
+    summary_df_name = os.path.join(output_dir, 'summary_df.pickle')
+    with open(summary_df_name, "wb") as file:
+        pickle.dump(summary_df, file, pickle.HIGHEST_PROTOCOL)
+
+    if kwargs['mode']=='run':
+        lop = [['f0only'], ['f0eps-NA'], ['tTrain-100_', 'rfDim-200_', 'stateType-state_']]
+        prioritized_job_sender(all_job_fnames,
+                                bash_command=cmd_job,
+                                list_of_priorities=lop)
+
+    if kwargs['mode']=='plot':
+        run_summary(output_dir)
+
+def declare_jobs(data_pathname, datagen_settings, output_dir, master_job_file, cmd_py, conda_env):
     shared_settings = {'data_pathname': data_pathname,
                         'f0_name': 'L63',
                         'input_dim': 3,
@@ -85,20 +104,7 @@ def main(cmd_py, output_dir, cmd_job, datagen, conda_env, **kwargs):
     combined_settings['modelType'] = ['discrete', 'continuousInterp']
     all_job_fnames += queue_joblist(combined_settings=combined_settings, shared_settings=shared_settings, output_dir=output_dir, master_job_file=master_job_file, cmd=cmd_py, conda_env=conda_env)
 
-    # collect job dirs and enumerate their properties
-    summary_df = init_summary_df(combined_settings, all_job_fnames)
-    summary_df_name = os.path.join(output_dir, 'summary_df.pickle')
-    with open(summary_df_name, "wb") as file:
-        pickle.dump(summary_df, file, pickle.HIGHEST_PROTOCOL)
-
-    lop = [['f0only'], ['f0eps-NA'], ['tTrain-100_', 'rfDim-200_', 'stateType-state_']]
-    prioritized_job_sender(all_job_fnames,
-                            bash_command=cmd_job,
-                            list_of_priorities=lop)
-
-    if cmd_job=='bash':
-        run_summary(output_dir)
-
+    return all_job_fnames
 
 def prioritized_job_sender(all_job_fnames, bash_command, list_of_priorities):
 
