@@ -290,6 +290,15 @@ class IDK(object):
 		prediction = self.make_predictions(ic=ic, t_end=t_end)
 		prediction = self.scaler.descaleData(prediction)
 		eval_dict = computeErrors(target, prediction, self.scaler.data_std, dt=self.dt)
+
+		# add hyperparameters to test_eval.pickle output
+		try:
+			for my_varnm in ["regularization_RF", "rf_Win_bound", "rf_bias_bound"]:
+				exec("val = self.{varnm}".format(varnm=my_varnm))
+				eval_dict[my_varnm] = val
+		except:
+			pass
+
 		if do_plots:
 			self.makeNewPlots(true_traj=target, predicted_traj=prediction, set_name=set_name)
 		return eval_dict
@@ -448,6 +457,9 @@ class IDK(object):
 				self.W_in_markov = data["W_in_markov"]
 				self.b_h_markov = data["b_h_markov"]
 				self.W_out_markov = data["W_out_markov"]
+				self.regularization_RF = data["regularization_RF"]
+				self.rf_Win_bound = data["rf_Win_bound"]
+				self.rf_bias_bound = data["rf_bias_bound"]
 
 
 	def testingOnTrainingSet(self):
