@@ -1,18 +1,19 @@
 {
   "validate_hyperparameters": 1,
   "regularization_RF": 0.0001,
-  "scaler": "standard",
-  "scaler_derivatives": "no",
+  "scaler_tt": "standard",
+  "scaler_tt_derivatives": "no",
   "component_wise": 0,
-  "rf_Win_bound": 0.005,
-  "rf_bias_bound": 4,
+  "rf_Win_bound": 1,
+  "rf_bias_bound": 3,
   "rf_dim": 200,
   "dt_fast_frac": 1,
   "test_integrator": "RK45",
   "rf_error_input": 0,
-  "ZY": "old",
+  "ZY": "new",
   "model_dir": "Trained_Models",
   "fig_dir": "Figures",
   "logfile_dir": "Logfiles",
-  "rng_seed": 0
+  "rng_seed": 0,
+  "quad_limit": 5000
 }

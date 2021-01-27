@@ -6,7 +6,7 @@ from scipy import sparse as sparse
 from scipy.sparse import linalg as splinalg
 from scipy.linalg import pinv2 as scipypinv2
 from scipy.linalg import block_diag
-from scipy.integrate import solve_ivp, trapz
+from scipy.integrate import solve_ivp, trapz, quad_vec
 from scipy.interpolate import CubicSpline
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF, Matern, WhiteKernel, ConstantKernel
@@ -48,46 +48,17 @@ class IDK(object):
 		# add extra settings and replace defaults as needed
 		params.update(settings)
 
-		# initialize
-		## new properties
-		self.validate_hyperparameters = params["validate_hyperparameters"]
-		self.modelType = params["modelType"]
-		self.stateType = params["stateType"]
-		self.trainNumber = params["trainNumber"]
-		self.dt = params["dt"]
-		self.t_train = params["tTrain"]
-		self.t_test = params["t_test"]
+		for key in params:
+			exec('self.{} = params["{}"]'.format(key, key))
 
-		self.f0only = 0
-		if self.modelType=='f0only':
-			self.f0only = 1
-
-		## set paths
-		self.train_data_path = params["train_data_path"]
-		self.test_data_path = params["test_data_path"]
-		self.saving_path = params["saving_path"]
+		self.scaler = scaler(tt=self.scaler_tt, tt_derivative=self.scaler_tt_derivatives, component_wise=self.component_wise)
 		self.fig_dir = os.path.join(self.saving_path, params["fig_dir"])
 		self.model_dir = os.path.join(self.saving_path, params["model_dir"])
 		self.logfile_dir = os.path.join(self.saving_path, params["logfile_dir"])
-
-		self.rng_seed = params["rng_seed"]
 		np.random.seed(self.rng_seed)
-
-		self.input_dim = params["input_dim"]
-		self.regularization_RF = params["regularization_RF"]
-		self.scaler_tt = params["scaler"]
-		self.scaler_tt_derivatives = params["scaler_derivatives"]
-
+		self.f0only = int(self.modelType=='f0only')
 		self.dynamics_length = 1
 
-		##########################################
-		self.component_wise = params["component_wise"]
-		self.scaler = scaler(tt=self.scaler_tt, tt_derivative=self.scaler_tt_derivatives, component_wise=self.component_wise)
-		self.test_integrator = params["test_integrator"]
-		self.rf_dim = params["rfDim"]
-		self.rf_Win_bound = params["rf_Win_bound"]
-		self.rf_bias_bound = params["rf_bias_bound"]
-		self.ZY = params["ZY"]
 
 		####### Add physical mechanistic rhs "f0" ##########
 		if self.stateType=='state':
@@ -129,7 +100,7 @@ class IDK(object):
 			# Pickle the "data" dictionary using the highest protocol available.
 			data = pickle.load(file)
 			self.dt_rawdata = data["dt"]
-			train_input_sequence = self.subsample(x=data["u_train"][self.trainNumber, :, :self.input_dim], t_end=self.t_train)
+			train_input_sequence = self.subsample(x=data["u_train"][self.trainNumber, :, :self.input_dim], t_end=self.tTrain)
 			del data
 		# scale training data
 		self.train_input_sequence = self.scaler.scaleData(train_input_sequence)
@@ -144,8 +115,8 @@ class IDK(object):
 		# Do a hyperparameter optimization using a validation step
 		if self.validate_hyperparameters:
 			# first learn W, b using default regularization
-			pbounds = {'log_rf_Win_bound': (-3,2),
-						'log_rf_bias_bound': (-3,2)}
+			pbounds = {'rf_Win_bound': (0,10),
+						'rf_bias_bound': (0,20)}
 			optimizer = BayesianOptimization(f=self.validation_function,
 											pbounds=pbounds,
 											random_state=1)
@@ -494,8 +465,8 @@ class IDK(object):
 	def set_random_weights(self):
 
 		# initialize markovian random terms for Random Feature Maps
-		self.b_h_markov = np.random.uniform(low=-self.rf_bias_bound, high=self.rf_bias_bound, size=(self.rf_dim, 1))
-		self.W_in_markov = np.random.uniform(low=-self.rf_Win_bound, high=self.rf_Win_bound, size=(self.rf_dim, self.input_dim_rf))
+		self.b_h_markov = np.random.uniform(low=-self.rf_bias_bound, high=self.rf_bias_bound, size=(self.rfDim, 1))
+		self.W_in_markov = np.random.uniform(low=-self.rf_Win_bound, high=self.rf_Win_bound, size=(self.rfDim, self.input_dim_rf))
 
 	def x_t(self, t, t0=0):
 		#linearly interpolate self.x_vec at time t
@@ -530,9 +501,7 @@ class IDK(object):
 		q = np.tanh(self.W_in_markov @ x_t + np.squeeze(self.b_h_markov))
 		return q
 
-	def rcrf_rhs(self, t, S, k=None):
-		'''k is the component when doing component-wise models'''
-
+	def qm_t(self, t, k=None):
 		x = self.x_t(t=t)
 		xdot = self.xdot_t(t=t)
 		m = self.mscaled(t, x, xdot)
@@ -549,10 +518,28 @@ class IDK(object):
 		else:
 			rf_input = x
 
+		q = self.q_t(rf_input)
+
+		return q, m
+
+	def Z_t(self, t):
+		q, m = self.qm_t(t)
+		val = np.outer(q, q).reshape(-1)
+		return val
+
+	def Y_t(self, t):
+		q, m = self.qm_t(t)
+		val = np.outer(q, m)
+		return val
+
+	def rcrf_rhs(self, t, S, k=None):
+		'''k is the component when doing component-wise models'''
+
+		q, m = self.qm_t(t=t, k=k)
+
 		if self.ZY=='new':
 			return 0
 		else:
-			q = self.q_t(rf_input)
 			dZqq = np.outer(q, q).reshape(-1)
 			dYq = np.outer(q, m).reshape(-1)
 			S = np.hstack( (dZqq, dYq) )
@@ -620,7 +607,7 @@ class IDK(object):
 
 		# T_warmup = self.dt*dynamics_length
 		T_warmup = 0
-		T_train = self.t_train
+		T_train = self.tTrain
 		t_span = [T_warmup, T_warmup + T_train]
 		step = self.dt/10
 		t_eval = np.linspace(start=t_span[0], stop=t_span[-1], num=int(T_train/step))
@@ -635,8 +622,7 @@ class IDK(object):
 				# allocate, reshape, normalize, and save solutions
 				print('Compute final Y,Z component...')
 				if self.ZY=='new':
-					self.newMethod_getYZstuff2(times=t_eval, k=k)
-					self.newMethod_saveYZ(T_train=T_train)
+					self.newMethod_getYZ_quad(t_span=t_span, k=k)
 				else:
 					print('Integrating over training data...')
 					timer_start = time.time()
@@ -654,8 +640,9 @@ class IDK(object):
 			print('Compute final Y,Z...')
 			# now test ability to get YZ solely from integrated r(t) to save solve_ivp computations
 			if self.ZY=='new':
-				self.newMethod_getYZstuff2(times=t_eval)
-				self.newMethod_saveYZ(T_train=T_train)
+				timer_start = time.time()
+				self.newMethod_getYZ_quad(t_span=t_span)
+				print('...took {:2.2f} minutes'.format((time.time() - timer_start)/60))
 			else:
 				print('Integrating over training data...')
 				timer_start = time.time()
@@ -664,11 +651,22 @@ class IDK(object):
 				self.newMethod_getYZstuff(yend=sol.y[:,-1])
 				self.newMethod_saveYZ(T_train=T_train)
 
+	def newMethod_getYZ_quad(self, t_span, k=None):
+		limit = self.quad_limit
+		Z, Zerr = quad_vec(f=self.Z_t, a=t_span[0], b=t_span[-1], limit=limit)
+		Y, Yerr = quad_vec(f=self.Y_t, a=t_span[0], b=t_span[-1], limit=limit)
+
+		T = t_span[-1] - t_span[0]
+		self.Z = Z.reshape(self.rfDim, self.rfDim) / T
+		self.Y = Y.reshape(self.rfDim, self.input_dim) / T
+
+		self.reg_dim = self.Z.shape[0]
+
 	def newMethod_getYZstuff2(self, times, k=None):
 
 		n_times = times.shape[0]
-		dZqq = np.zeros((n_times, self.rf_dim, self.rf_dim))
-		dYq = np.zeros((n_times, self.rf_dim, self.output_dim_rf))
+		dZqq = np.zeros((n_times, self.rfDim, self.rfDim))
+		dYq = np.zeros((n_times, self.rfDim, self.output_dim_rf))
 		for n in range(n_times):
 			t = times[n]
 			x = self.x_t(t=t)
@@ -704,10 +702,10 @@ class IDK(object):
 		else:
 			in_dim = self.input_dim
 
-		Zqq = yend[:self.rf_dim**2]
-		Yq = yend[self.rf_dim**2:]
-		self.Zqq = Zqq.reshape(self.rf_dim, self.rf_dim)
-		self.Yq = Yq.reshape(self.rf_dim, in_dim)
+		Zqq = yend[:self.rfDim**2]
+		Yq = yend[self.rfDim**2:]
+		self.Zqq = Zqq.reshape(self.rfDim, self.rfDim)
+		self.Yq = Yq.reshape(self.rfDim, in_dim)
 
 
 	def newMethod_saveYZ(self, T_train):
