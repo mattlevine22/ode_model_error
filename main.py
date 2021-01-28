@@ -29,9 +29,6 @@ def main():
     print('Begin testing!')
     model.test()
 
-    # plot the model performance
-    model.plot()
-
 def get_settings(settings_path):
     # read in settings
     settings = file_to_dict(settings_path)
