@@ -212,7 +212,14 @@ def generate_data(ode,
     			n_train_traj,
                 n_validate_traj,
     			delta_t,
-                data_pathname):
+                data_pathname,
+                solver_type):
+
+    # load solver dict
+    solver_dict='./Config/solver_settings.json'
+    foo = file_to_dict(solver_dict)
+    solver_settings = foo[solver_type]
+
 
     f_ode = lambda t, y: ode.rhs(y,t)
 
@@ -223,7 +230,7 @@ def generate_data(ode,
         tstart = time()
         t_span = [t0, T1]
         t_eval = np.array([t0+T1])
-        sol = solve_ivp(fun=f_ode, t_span=t_span, y0=u0, t_eval=t_eval, max_step=delta_t, method='RK45')
+        sol = solve_ivp(fun=f_ode, t_span=t_span, y0=u0, t_eval=t_eval, **solver_settings)
         print('took', '{:.2f}'.format((time() - tstart)/60),'minutes')
 
         print("Integration...")
@@ -235,7 +242,7 @@ def generate_data(ode,
         t_eval[:-1] = t_eval_tmp
         t_eval[-1] = T2
         # sol = solve_ivp(fun=lambda t, y: self.rhs(t0, y0), t_span=t_span, y0=u0, method=testcontinuous_ode_int_method, rtol=testcontinuous_ode_int_rtol, atol=testcontinuous_ode_int_atol, max_step=testcontinuous_ode_int_max_step, t_eval=t_eval)
-        sol = solve_ivp(fun=f_ode, t_span=t_span, y0=u0, t_eval=t_eval, max_step=delta_t, method='RK45')
+        sol = solve_ivp(fun=f_ode, t_span=t_span, y0=u0, t_eval=t_eval, **solver_settings)
         u = sol.y.T
         print('took', '{:.2f}'.format((time() - tstart)/60),'minutes')
         return u
