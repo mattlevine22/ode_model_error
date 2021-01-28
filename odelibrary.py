@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.integrate import solve_ivp
 # from matplotlib import pyplot
 # from numba import jitclass          # import the decorator
 # from numba import boolean, int64, float32, float64    # import the types
@@ -19,6 +20,23 @@ import pdb
 #     ('slow_only', boolean),               # a simple scalar field
 #     ('xk_star', float64[:])               # a simple scalar field
 # ]
+
+def my_solve_ivp(ic, f_rhs, t_eval, t_span, settings):
+    u0 = np.copy(ic)
+    if settings['method']=='Euler':
+        dt = settings['dt']
+        u_sol = np.zeros((len(t_eval), len(ic)))
+        u_sol[0] = u0
+        for i in range(len(t_eval)-1):
+            t = t_eval[i]
+            rhs = f_rhs(t, u0)
+            u0 += dt * rhs
+            u_sol[i] = u0
+    else:
+        sol = solve_ivp(fun=lambda t, y: f_rhs(t, y), t_span=t_span, y0=u0, t_eval=t_eval, **settings)
+        u_sol = sol.y.T
+    return np.squeeze(u_sol)
+
 
 class LDS_COUPLED_X:
   """
