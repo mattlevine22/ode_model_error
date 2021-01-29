@@ -10,11 +10,11 @@ import argparse
 
 # CMD_generate_data_wrapper = 'python3 $HOME/mechRNN/experiments/scripts/generate_data_wrapper.py'
 parser = argparse.ArgumentParser()
-parser.add_argument('--mode', default='run', type=str)
+parser.add_argument('--mode', default='all', type=str)
 parser.add_argument('--datagen', default=1, type=int)
 parser.add_argument('--regen', default=0, type=int)
 parser.add_argument('--cmd_py', default='python3 main.py', type=str)
-parser.add_argument('--output_dir', default='/groups/astuart/mlevine/ode_model_error/experiments/l63eps_v0/', type=str)
+parser.add_argument('--output_dir', default='/groups/astuart/mlevine/ode_model_error/experiments/l63eps_v1/', type=str)
 parser.add_argument('--cmd_job', default='bash', type=str)
 parser.add_argument('--conda_env', default='', type=str)
 FLAGS = parser.parse_args()
@@ -34,7 +34,7 @@ def main(cmd_py, output_dir, cmd_job, datagen, conda_env, **kwargs):
 
     datagen_settings = {'rng_seed': 63,
                         't_transient': 30,
-                        't_train': 1005,
+                        't_train': 105,
                         't_invariant_measure': 100,
                         't_test': 20,
                         't_validate': 20,
@@ -42,6 +42,7 @@ def main(cmd_py, output_dir, cmd_job, datagen, conda_env, **kwargs):
                         'n_train_traj': 10,
                         'n_validate_traj': 7,
                         'delta_t': 0.001,
+                        'solver_type': 'hifiPlus',
                         'data_pathname': data_pathname
                     }
 
@@ -58,14 +59,20 @@ def main(cmd_py, output_dir, cmd_job, datagen, conda_env, **kwargs):
         with open(summary_df_name, "wb") as file:
             pickle.dump(summary_df, file, pickle.HIGHEST_PROTOCOL)
 
-    if kwargs['mode']=='run':
-        lop = [['f0only'], ['f0eps-NA'], ['tTrain-100_', 'rfDim-200_', 'stateType-state_']]
+    if kwargs['mode']=='all':
+        lop = [['f0only'],
+                ['f0eps-NA', 'stateType-state_', 'ZY-old'],
+                ['f0eps-NA', 'stateType-state_', 'ZY-new'],
+                ['tTrain-100_', 'rfDim-200_', 'stateType-state_', 'ZY-old', 'eps-0.05'],
+                ['tTrain-100_', 'rfDim-200_', 'stateType-state_', 'ZY-new', 'eps-0.05'],
+                ['tTrain-100_', 'rfDim-200_', 'stateType-state_', 'ZY-old'],
+                ['tTrain-100_', 'rfDim-200_', 'stateType-state_', 'ZY-new']
+               ]
         prioritized_job_sender(all_job_fnames,
                                 bash_command=cmd_job,
                                 list_of_priorities=lop)
 
-    if kwargs['mode']=='plot':
-        run_summary(output_dir)
+    run_summary(output_dir)
 
 def declare_jobs(data_pathname, datagen_settings, output_dir, master_job_file, cmd_py, conda_env):
     all_job_fnames = []
@@ -76,6 +83,7 @@ def declare_jobs(data_pathname, datagen_settings, output_dir, master_job_file, c
 
     ## HYBRID PHYSICS RUNS
     combined_settings = { 'modelType': ['discrete', 'continuousInterp'],
+                 'ZY': ['new', 'old'],
                  'rfDim': [200],
                  'tTrain': [100],
                  'usef0': [1],

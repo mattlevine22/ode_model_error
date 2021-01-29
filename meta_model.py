@@ -6,7 +6,7 @@ from scipy import sparse as sparse
 from scipy.sparse import linalg as splinalg
 from scipy.linalg import pinv2 as scipypinv2
 from scipy.linalg import block_diag
-from scipy.integrate import solve_ivp, trapz, quad_vec
+from scipy.integrate import trapz, quad_vec
 from scipy.interpolate import CubicSpline
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF, Matern, WhiteKernel, ConstantKernel
@@ -18,7 +18,7 @@ print = partial(print, flush=True)
 from sklearn.linear_model import Ridge
 from sklearn.linear_model import Lasso
 
-from odelibrary import L63
+from odelibrary import my_solve_ivp, L63
 
 # matt utils
 from utils import file_to_dict
@@ -41,12 +41,15 @@ import pandas as pd
 import pdb
 
 class IDK(object):
-	def __init__(self, settings, default_esn_settings='./Config/esn_default_params.json'):
+	def __init__(self, settings, default_esn_settings='./Config/esn_default_params.json', solver_dict='./Config/solver_settings.json'):
 		# load default settings
 		params = file_to_dict(default_esn_settings)
-
 		# add extra settings and replace defaults as needed
 		params.update(settings)
+
+		# load solver settings and add them to params
+		foo = file_to_dict(solver_dict)
+		params['solver_dict'] = foo
 
 		for key in params:
 			exec('self.{} = params["{}"]'.format(key, key))
@@ -59,6 +62,11 @@ class IDK(object):
 		self.f0only = int(self.modelType=='f0only')
 		self.dynamics_length = 1
 
+		### quadrature rules
+		self.default_quad_limit = self.tTrain / self.quad_limit_factor
+
+		#### setup solver and quad limit
+		self.set_fidelity("default")
 
 		####### Add physical mechanistic rhs "f0" ##########
 		if self.stateType=='state':
@@ -88,6 +96,16 @@ class IDK(object):
 		os.makedirs(self.logfile_dir, exist_ok=True)
 		print('FIGURE PATH:', self.fig_dir)
 
+	def set_fidelity(self, style):
+		print('Fidelity:', style)
+		try:
+			self.solver_settings = self.solver_dict[style]
+			if style=='lowfi':
+				self.quad_limit = self.default_quad_limit / 10
+			else:
+				self.quad_limit = self.default_quad_limit
+		except:
+			raise ValueError('fidelity style not recognized')
 
 	def train(self):
 		# if self.dont_redo and os.path.exists(self.saving_path + self.model_dir + "/data.pickle"):
@@ -109,11 +127,12 @@ class IDK(object):
 			self.saveModel()
 			return
 
-		# Do the learning!
-		self.setup_the_learning()
-
 		# Do a hyperparameter optimization using a validation step
+		self.set_fidelity('medfi')
 		if self.validate_hyperparameters:
+			# switch to lowfi quadrature for cheap validation runs
+			self.set_fidelity('lowfi')
+
 			# first learn W, b using default regularization
 			pbounds = {'rf_Win_bound': (0,10),
 						'rf_bias_bound': (0,20)}
@@ -131,9 +150,12 @@ class IDK(object):
 			print("Optimal parameters:", best_param_dict, '(quality = {})'.format(best_quality))
 			# re-setup things with optimal parameters (new realization using preferred hyperparams)
 			self.set_BO_keyval(best_param_dict)
+			# return to hifi quadrature for final solve
+			self.set_fidelity('medfi')
 			self.setup_the_learning()
 
-			# now fix the optimal W,b and learn the regularization
+			# now fix the optimal W,b and the learned Y,Z... just learn the optimal regularization for the inversion
+			self.set_fidelity('lowfi')
 			lambda_validation_f = lambda **kwargs: self.validation_function(setup_learning=False, **kwargs)
 			pbounds = {'log_regularization_RF': (-20, 0)}
 			optimizer = BayesianOptimization(f=lambda_validation_f,
@@ -147,12 +169,13 @@ class IDK(object):
 			best_quality = optimizer.max['target']
 			print("Optimal parameters:", best_param_dict, '(quality = {})'.format(best_quality))
 			self.set_BO_keyval(best_param_dict)
+			self.set_fidelity('medfi')
+		else:
+			self.setup_the_learning()
 
+		# solve for the final Y,Z, regI and save
 		self.doNewSolving()
 		self.saveModel()
-
-		# output training statistics
-		self.write_training_stats()
 
 	def setup_the_learning(self):
 		tl = self.train_input_sequence.shape[0] - self.dynamics_length
@@ -167,6 +190,7 @@ class IDK(object):
 			x_output = np.copy(self.train_input_sequence[1:])
 			x_input = np.copy(self.train_input_sequence[:-1])
 			x_input_descaled = self.scaler.descaleData(x_input)
+
 			if self.usef0:
 				predf0 = self.scaler.scaleData(np.array([self.psi0(x_input_descaled[i]) for i in range(x_input.shape[0])]), reuse=1)
 			if self.rf_error_input:
@@ -197,10 +221,13 @@ class IDK(object):
 		# self.first_train_vec = train_input_sequence[(self.dynamics_length+1),:]
 
 	def test(self):
-		# self.testingOnTrainingSet()
-		test_eval = self.testingOnSet(setnm='test')
-		# self.saveResults()
-		self.write_stats(pd_stat=test_eval, stat_name='test_eval')
+		for fidelity in ['default', 'lowfi', 'medfi', 'hifi', 'hifiPlus']:
+			self.set_fidelity(fidelity)
+			test_eval = self.testingOnSet(setnm='test', fidelity_name=fidelity)
+			self.write_stats(pd_stat=test_eval, stat_name='test_eval_{}'.format(fidelity))
+			if fidelity=='hifi':
+				self.write_stats(pd_stat=test_eval, stat_name='test_eval')
+			print(test_eval.mean())
 
 	def validate(self):
 		# self.testingOnTrainingSet()
@@ -230,7 +257,7 @@ class IDK(object):
 		return quality
 
 
-	def testingOnSet(self, setnm, do_plots=True):
+	def testingOnSet(self, setnm, do_plots=True, fidelity_name=''):
 		with open(self.test_data_path, "rb") as file:
 			data = pickle.load(file)
 			self.dt_rawdata = data["dt"]
@@ -243,7 +270,7 @@ class IDK(object):
 		for n in range(n_traj):
 			print('Evaluating',setnm, 'set #', n+1, '/', n_traj)
 			test_input_sequence = self.subsample(x=eval_data[n], t_end=self.t_test)
-			eval_dict = self.eval(input_sequence=test_input_sequence, t_end=self.t_test, set_name=setnm+str(n), do_plots=do_plots)
+			eval_dict = self.eval(input_sequence=test_input_sequence, t_end=self.t_test, set_name=setnm+fidelity_name+str(n), do_plots=do_plots)
 			test_eval.append(eval_dict)
 
 		# regroup test_eval
@@ -286,12 +313,15 @@ class IDK(object):
 		elif 'continuous' in self.modelType:
 			N = int(t_end / self.dt) + 1
 			t_eval = self.dt*np.arange(N)
-			prediction = self.my_solve_ivp(ic=ic, f_rhs=self.rhs, t_eval=t_eval)
+			t_span = [t_eval[0], t_eval[-1]]
+			prediction = my_solve_ivp(ic=ic, f_rhs=self.rhs, t_eval=t_eval, t_span=t_span, settings=self.solver_settings)
 		return prediction
 
 
-	def psi0(self, ic):
-		pred = self.forward_solver(x_input=ic, f_rhs=self.f0)
+	def psi0(self, ic, t0=0):
+		t_span = [t0, t0+self.dt]
+		t_eval = np.array([t0+self.dt])
+		pred = my_solve_ivp(ic=ic, f_rhs=self.f0, t_eval=t_eval, t_span=t_span, settings=self.solver_settings)
 		return pred
 
 	def predict_next(self, x_input, t0=0):
@@ -310,56 +340,15 @@ class IDK(object):
 			else:
 				u_next = pred + self.W_out_markov @ self.q_t(rf_input)
 		elif self.modelType=='continuousInterp':
-			u_next = self.forward_solver(x_input=x_input, f_rhs=self.rhs)
+			t_span = [t0, t0+self.dt]
+			t_eval = np.array([t0+self.dt])
+			u_next = my_solve_ivp(ic=x_input, f_rhs=self.rhs, t_span=t_span, t_eval=t_eval, settings=self.solver_settings)
 		elif self.modelType=='f0only':
 			u_next = self.scaler.scaleData(self.psi0(self.scaler.descaleData(x_input)), reuse=1)
 		else:
 			raise ValueError('modelType not recognized')
 
 		return np.squeeze(u_next)
-
-
-	def my_solve_ivp(self, ic, f_rhs, t_eval, **kwargs):
-		solver = self.test_integrator
-		u0 = np.copy(ic)
-		if solver=='Euler':
-			u_sol = np.zeros((len(t_eval), len(ic)))
-			u_sol[0] = u0
-			for i in range(len(t_eval)-1):
-				t = t_eval[i]
-				rhs = f_rhs(t, u0)
-				u0 += self.dt * rhs
-				u_sol[i] = u0
-		elif solver=='RK45':
-			t_span = [t_eval[0], t_eval[-1]]
-			sol = solve_ivp(fun=lambda t, y: f_rhs(t, y), t_span=t_span, y0=u0, t_eval=t_eval, max_step=self.dt/10)
-			u_sol = sol.y.T
-		return u_sol
-
-
-	def forward_solver(self, x_input, f_rhs, t0=0):
-		solver = self.test_integrator
-		u0 = np.copy(x_input)
-		if solver=='Euler':
-			rhs = f_rhs(t0, u0)
-			u_next = u0 + self.dt * rhs
-		elif solver=='Euler_fast':
-			dt_fast = self.dt_fast_frac * self.dt
-			t_end = t0 + self.dt
-			t = np.float(t0)
-			u_next = np.copy(u0)
-			while t < t_end:
-				rhs = f_rhs(t, u_next)
-				u_next += dt_fast * rhs
-				t += dt_fast
-		elif solver=='RK45':
-			t_span = [t0, t0+self.dt]
-			t_eval = np.array([t0+self.dt])
-			sol = solve_ivp(fun=lambda t, y: f_rhs(t, y), t_span=t_span, y0=u0, t_eval=t_eval)
-			u_next = sol.y
-
-		u_next = np.squeeze(u_next)
-		return u_next
 
 	def rhs(self, t0, u0):
 		#u0 is in normalized coordinates but dx is in UNnormalized coordinates
@@ -419,20 +408,6 @@ class IDK(object):
 		plt.savefig(fig_path)
 		plt.close()
 
-	def loadModel(self):
-		data_path = os.path.join(self.model_dir, "data.pickle")
-		with open(data_path, "rb") as file:
-			data = pickle.load(file)
-			self.scaler = data["scaler"]
-			if not self.f0only:
-				self.W_in_markov = data["W_in_markov"]
-				self.b_h_markov = data["b_h_markov"]
-				self.W_out_markov = data["W_out_markov"]
-				self.regularization_RF = data["regularization_RF"]
-				self.rf_Win_bound = data["rf_Win_bound"]
-				self.rf_bias_bound = data["rf_bias_bound"]
-
-
 	def testingOnTrainingSet(self):
 		with open(self.train_data_path, "rb") as file:
 			data = pickle.load(file)
@@ -441,12 +416,6 @@ class IDK(object):
 		# rmnse_avg, num_accurate_pred_005_avg, num_accurate_pred_050_avg, error_freq, predictions_all, truths_all, freq_pred, freq_true, sp_true, sp_pred, hidden_all = self.eval(train_input_sequence, dt, "TRAIN")
 		eval_dict = self.eval(input_sequence=train_input_sequence, t_end=self.t_test, set_name="TRAIN"+str(self.trainNumber))
 		return eval_dict
-
-	def plot(self):
-		pass
-
-	def write_training_stats(self):
-	    pass
 
 	def write_stats(self, pd_stat, stat_name):
 		save_path = self.saving_path  + "/{}.pickle".format(stat_name)
@@ -463,14 +432,12 @@ class IDK(object):
 
 	### TRAINING STUFF
 	def set_random_weights(self):
-
 		# initialize markovian random terms for Random Feature Maps
 		self.b_h_markov = np.random.uniform(low=-self.rf_bias_bound, high=self.rf_bias_bound, size=(self.rfDim, 1))
 		self.W_in_markov = np.random.uniform(low=-self.rf_Win_bound, high=self.rf_Win_bound, size=(self.rfDim, self.input_dim_rf))
 
 	def x_t(self, t, t0=0):
 		#linearly interpolate self.x_vec at time t
-		# self.n_min = self.x_vec.shape[0]-1
 		ind_mid = (t-t0) / self.dt
 		ind_low = max(0, min( int(np.floor(ind_mid)), self.n_min) )
 		ind_high = min(self.n_min, int(np.ceil(ind_mid)))
@@ -534,16 +501,131 @@ class IDK(object):
 
 	def rcrf_rhs(self, t, S, k=None):
 		'''k is the component when doing component-wise models'''
-
 		q, m = self.qm_t(t=t, k=k)
+		dZqq = np.outer(q, q).reshape(-1)
+		dYq = np.outer(q, m).reshape(-1)
+		S = np.hstack( (dZqq, dYq) )
+		return S
 
-		if self.ZY=='new':
-			return 0
+	def continuousInterpRF(self):
+
+		self.x_vec = self.train_input_sequence
+		self.n_min = self.x_vec.shape[0]-1
+		self.x_vec_raw = self.scaler.descaleData(self.x_vec)
+
+		# get spline derivative
+		t_vec = self.dt*np.arange(self.x_vec.shape[0])
+		self.xdot_spline = [CubicSpline(x=t_vec, y=self.x_vec[:,k]).derivative() for k in range(self.input_dim)]
+
+		# get m(t) for all time JUST to have its statistics for normalization ahead of time
+		xdot_vec = np.array([self.xdot_spline[k](t_vec) for k in range(self.input_dim)]).T
+
+		if self.doResidual:
+			f0_vec = np.array([self.f0(0, x) for x in self.x_vec_raw])
+			# xdot(t) = f0(x(t)) + m(t)
+			# so, m(t) = xdot(t) - f0(x(t))
+			m_vec = xdot_vec - self.scaler.scaleXdot(f0_vec)
+			self.scaler.scaleM(m_vec) # just stores statistics
 		else:
-			dZqq = np.outer(q, q).reshape(-1)
-			dYq = np.outer(q, m).reshape(-1)
-			S = np.hstack( (dZqq, dYq) )
-			return S
+			self.scaler.scaleM(xdot_vec) # just stores statistics
+
+		# T_warmup = self.dt*dynamics_length
+		T_warmup = 0
+		T_train = self.tTrain
+		t_span = [T_warmup, T_warmup + T_train]
+		step = self.dt/10
+		t_eval = np.array([t_span[-1]])
+		y0 = self.newMethod_getIC(T_warmup=T_warmup)
+
+		if self.component_wise:
+			self.Y = []
+			self.Z = []
+			for k in range(self.input_dim):
+				# allocate, reshape, normalize, and save solutions
+				print('Compute final Y,Z component...')
+				if self.ZY=='new':
+					self.newMethod_getYZ_quad(t_span=t_span, k=k)
+				else:
+					print('Integrating over training data...')
+					timer_start = time.time()
+					ysol = my_solve_ivp(f_rhs=lambda t, y: self.rcrf_rhs(t, y, k=k), t_span=t_span, t_eval=t_eval, ic=y0[k], settings=self.solver_settings)
+					print('...took {:2.2f} minutes'.format((time.time() - timer_start)/60))
+					self.newMethod_saveYZ(yend=ysol.T, T_train=T_train)
+			self.Y = np.vstack(self.Y)
+			self.Z = np.vstack(self.Z)
+		else:
+			# allocate, reshape, normalize, and save solutions
+			print('Computing final Y,Z...')
+			if self.ZY=='new':
+				print('Integrating Z, Y with quadrature')
+				timer_start = time.time()
+				self.newMethod_getYZ_quad(t_span=t_span)
+				print('...took {:2.2f} minutes'.format((time.time() - timer_start)/60))
+			else:
+				print('Integrating Z, Y with ODE solver')
+				timer_start = time.time()
+				ysol = my_solve_ivp(f_rhs=self.rcrf_rhs, t_span=t_span, t_eval=t_eval, ic=y0, settings=self.solver_settings)
+				print('...took {:2.2f} minutes'.format((time.time() - timer_start)/60))
+				self.newMethod_saveYZ(yend=ysol.T, T_train=T_train)
+
+	def newMethod_getYZ_quad(self, t_span, k=None):
+		T = t_span[-1] - t_span[0]
+
+		Z, Zerr = quad_vec(f=self.Z_t, a=t_span[0], b=t_span[-1], limit=self.quad_limit)
+		Y, Yerr = quad_vec(f=self.Y_t, a=t_span[0], b=t_span[-1], limit=self.quad_limit)
+		self.Z = Z.reshape(self.rfDim, self.rfDim) / T
+		self.Y = Y.reshape(self.rfDim, self.input_dim) / T
+
+		self.reg_dim = self.Z.shape[0]
+
+	def newMethod_saveYZ(self, yend, T_train):
+
+		if self.component_wise:
+			in_dim = 1
+		else:
+			in_dim = self.input_dim
+
+		Zqq = yend[:self.rfDim**2]
+		Yq = yend[self.rfDim**2:]
+		Z = Zqq.reshape(self.rfDim, self.rfDim)
+		Y = Yq.reshape(self.rfDim, in_dim)
+
+		# save Time-Normalized Y,Z
+		if self.component_wise:
+			self.Y.append(Y / T_train)
+			self.Z.append(Z / T_train)
+		else:
+			self.Y = Y / T_train
+			self.Z = Z / T_train
+
+		# store Z size for building regularization identity matrix
+		self.reg_dim = Z.shape[0]
+
+
+	def doNewSolving(self, do_plots=True):
+		if self.modelType in ['continuousInterp', 'discrete']:
+			print('Solving inverse problem W = (Z+rI)^-1 Y...')
+			# regI = np.identity(self.Z.shape[0])
+			regI = np.identity(self.reg_dim)
+			regI *= self.regularization_RF
+
+			if self.component_wise:
+				# stack regI K times
+				regI = np.tile(regI,(self.input_dim,1))
+
+			pinv_ = scipypinv2(self.Z + regI)
+			W_out_all = (pinv_ @ self.Y).T
+			self.W_out_markov = W_out_all
+
+			if do_plots:
+				plotMatrix(self, self.W_out_markov, 'W_out_markov')
+
+			# Compute residuals from inversion
+			res = (self.Z + regI) @ W_out_all.T - self.Y
+			mse = np.mean(res**2)
+			print('Inversion MSE for lambda_RF={lrf} is {mse} with normalized |Wout|={nrm}'.format(lrf=self.regularization_RF, mse=mse, nrm=np.mean(W_out_all**2)))
+		elif self.modelType in ['discreteGP']:
+			pass
 
 	def newMethod_getIC(self, T_warmup):
 		# generate ICs for training integration
@@ -583,172 +665,6 @@ class IDK(object):
 
 		return yall
 
-	def continuousInterpRF(self):
-
-		self.x_vec = self.train_input_sequence
-		self.n_min = self.x_vec.shape[0]-1
-		self.x_vec_raw = self.scaler.descaleData(self.x_vec)
-
-		# get spline derivative
-		t_vec = self.dt*np.arange(self.x_vec.shape[0])
-		self.xdot_spline = [CubicSpline(x=t_vec, y=self.x_vec[:,k]).derivative() for k in range(self.input_dim)]
-
-		# get m(t) for all time JUST to have its statistics for normalization ahead of time
-		xdot_vec = np.array([self.xdot_spline[k](t_vec) for k in range(self.input_dim)]).T
-
-		if self.doResidual:
-			f0_vec = np.array([self.f0(0, x) for x in self.x_vec_raw])
-			# xdot(t) = f0(x(t)) + m(t)
-			# so, m(t) = xdot(t) - f0(x(t))
-			m_vec = xdot_vec - self.scaler.scaleXdot(f0_vec)
-			self.scaler.scaleM(m_vec) # just stores statistics
-		else:
-			self.scaler.scaleM(xdot_vec) # just stores statistics
-
-		# T_warmup = self.dt*dynamics_length
-		T_warmup = 0
-		T_train = self.tTrain
-		t_span = [T_warmup, T_warmup + T_train]
-		step = self.dt/10
-		t_eval = np.linspace(start=t_span[0], stop=t_span[-1], num=int(T_train/step))
-		y0 = self.newMethod_getIC(T_warmup=T_warmup)
-
-		if self.component_wise:
-			self.Y = []
-			self.Z = []
-			for k in range(self.input_dim):
-				# Perform training integration using IC y0
-
-				# allocate, reshape, normalize, and save solutions
-				print('Compute final Y,Z component...')
-				if self.ZY=='new':
-					self.newMethod_getYZ_quad(t_span=t_span, k=k)
-				else:
-					print('Integrating over training data...')
-					timer_start = time.time()
-					sol = solve_ivp(fun=lambda t, y: self.rcrf_rhs(t, y, k=k), t_span=t_span, t_eval=t_span, y0=y0[k])
-					print('...took {:2.2f} minutes'.format((time.time() - timer_start)/60))
-					self.newMethod_getYZstuff(yend=sol.y[:,-1])
-					self.newMethod_saveYZ(T_train=T_train)
-
-			self.Y = np.vstack(self.Y)
-			self.Z = np.vstack(self.Z)
-		else:
-			# Perform training integration using IC y0
-
-			# allocate, reshape, normalize, and save solutions
-			print('Compute final Y,Z...')
-			# now test ability to get YZ solely from integrated r(t) to save solve_ivp computations
-			if self.ZY=='new':
-				timer_start = time.time()
-				self.newMethod_getYZ_quad(t_span=t_span)
-				print('...took {:2.2f} minutes'.format((time.time() - timer_start)/60))
-			else:
-				print('Integrating over training data...')
-				timer_start = time.time()
-				sol = solve_ivp(fun=self.rcrf_rhs, t_span=t_span, t_eval=t_span, y0=y0)
-				print('...took {:2.2f} minutes'.format((time.time() - timer_start)/60))
-				self.newMethod_getYZstuff(yend=sol.y[:,-1])
-				self.newMethod_saveYZ(T_train=T_train)
-
-	def newMethod_getYZ_quad(self, t_span, k=None):
-		limit = self.quad_limit
-		Z, Zerr = quad_vec(f=self.Z_t, a=t_span[0], b=t_span[-1], limit=limit)
-		Y, Yerr = quad_vec(f=self.Y_t, a=t_span[0], b=t_span[-1], limit=limit)
-
-		T = t_span[-1] - t_span[0]
-		self.Z = Z.reshape(self.rfDim, self.rfDim) / T
-		self.Y = Y.reshape(self.rfDim, self.input_dim) / T
-
-		self.reg_dim = self.Z.shape[0]
-
-	def newMethod_getYZstuff2(self, times, k=None):
-
-		n_times = times.shape[0]
-		dZqq = np.zeros((n_times, self.rfDim, self.rfDim))
-		dYq = np.zeros((n_times, self.rfDim, self.output_dim_rf))
-		for n in range(n_times):
-			t = times[n]
-			x = self.x_t(t=t)
-			xdot = self.xdot_t(t=t)
-			m = self.mscaled(t, x, xdot)
-			if self.component_wise:
-				x = x[k,None]
-				xdot = xdot[k,None]
-				m = m[k,None]
-			if self.rf_error_input:
-				f0 = self.scaler.scaleXdot(self.f0(T_warmup, self.scaler.descaleData(x0)))
-				if self.component_wise:
-					f0 = f0[k,None]
-				rf_input = np.hstack((x,f0))
-			else:
-				rf_input = x
-
-			q = self.q_t(rf_input)
-			dZqq[n] = np.outer(q, q)
-			dYq[n] = np.outer(q, m)
-		self.Zqq = np.zeros(dZqq.shape[1:])
-		self.Yq = np.zeros(dYq.shape[1:])
-		for i in range(self.Zqq.shape[0]):
-			for j in range(self.Zqq.shape[1]):
-				self.Zqq[i,j] = trapz(y=dZqq[:,i,j], x=times)
-			for j in range(self.Yq.shape[1]):
-				self.Yq[i,j] = trapz(y=dYq[:,i,j], x=times)
-
-	def newMethod_getYZstuff(self, yend):
-
-		if self.component_wise:
-			in_dim = 1
-		else:
-			in_dim = self.input_dim
-
-		Zqq = yend[:self.rfDim**2]
-		Yq = yend[self.rfDim**2:]
-		self.Zqq = Zqq.reshape(self.rfDim, self.rfDim)
-		self.Yq = Yq.reshape(self.rfDim, in_dim)
-
-
-	def newMethod_saveYZ(self, T_train):
-
-		Y = self.Yq
-		Z = self.Zqq
-
-		# save Time-Normalized Y,Z
-		if self.component_wise:
-			self.Y.append(Y / T_train)
-			self.Z.append(Z / T_train)
-		else:
-			self.Y = Y / T_train
-			self.Z = Z / T_train
-
-		# store Z size for building regularization identity matrix
-		self.reg_dim = Z.shape[0]
-
-
-	def doNewSolving(self, do_plots=True):
-		if self.modelType in ['continuousInterp', 'discrete']:
-			print('Solving inverse problem W = (Z+rI)^-1 Y...')
-			# regI = np.identity(self.Z.shape[0])
-			regI = np.identity(self.reg_dim)
-			regI *= self.regularization_RF
-
-			if self.component_wise:
-				# stack regI K times
-				regI = np.tile(regI,(self.input_dim,1))
-
-			pinv_ = scipypinv2(self.Z + regI)
-			W_out_all = (pinv_ @ self.Y).T
-			self.W_out_markov = W_out_all
-
-			if do_plots:
-				plotMatrix(self, self.W_out_markov, 'W_out_markov')
-
-			# Compute residuals from inversion
-			res = (self.Z + regI) @ W_out_all.T - self.Y
-			mse = np.mean(res**2)
-			print('Inversion MSE for lambda_RF={lrf} is {mse} with normalized |Wout|={nrm}'.format(lrf=self.regularization_RF, mse=mse, nrm=np.mean(W_out_all**2)))
-		elif self.modelType in ['discreteGP']:
-			pass
 
 	def saveModel(self):
 		# print("Recording time...")
@@ -793,3 +709,16 @@ class IDK(object):
 			pickle.dump(data, file, pickle.HIGHEST_PROTOCOL)
 			del data
 		return 0
+
+	def loadModel(self):
+		data_path = os.path.join(self.model_dir, "data.pickle")
+		with open(data_path, "rb") as file:
+			data = pickle.load(file)
+			self.scaler = data["scaler"]
+			if not self.f0only:
+				self.W_in_markov = data["W_in_markov"]
+				self.b_h_markov = data["b_h_markov"]
+				self.W_out_markov = data["W_out_markov"]
+				self.regularization_RF = data["regularization_RF"]
+				self.rf_Win_bound = data["rf_Win_bound"]
+				self.rf_bias_bound = data["rf_bias_bound"]
