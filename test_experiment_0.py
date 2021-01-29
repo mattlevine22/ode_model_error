@@ -17,6 +17,7 @@ parser.add_argument('--cmd_py', default='python3 main.py', type=str)
 parser.add_argument('--output_dir', default='/groups/astuart/mlevine/ode_model_error/experiments/l63eps_v1/', type=str)
 parser.add_argument('--cmd_job', default='bash', type=str)
 parser.add_argument('--conda_env', default='', type=str)
+parser.add_argument('--hours', default=2, type=int)
 FLAGS = parser.parse_args()
 
 
@@ -51,7 +52,7 @@ def main(cmd_py, output_dir, cmd_job, datagen, conda_env, **kwargs):
 
     ## Get Job List
     if kwargs['regen'] or kwargs['mode']=='all':
-        all_job_fnames, combined_settings = declare_jobs(data_pathname, datagen_settings, output_dir, master_job_file, cmd_py, conda_env)
+        all_job_fnames, combined_settings = declare_jobs(data_pathname, datagen_settings, output_dir, master_job_file, cmd_py, conda_env, hours=kwargs['hours'])
 
         # collect job dirs and enumerate their properties
         summary_df = init_summary_df(combined_settings, all_job_fnames)
@@ -74,7 +75,7 @@ def main(cmd_py, output_dir, cmd_job, datagen, conda_env, **kwargs):
 
     run_summary(output_dir)
 
-def declare_jobs(data_pathname, datagen_settings, output_dir, master_job_file, cmd_py, conda_env):
+def declare_jobs(data_pathname, datagen_settings, output_dir, master_job_file, cmd_py, conda_env, hours):
     all_job_fnames = []
     shared_settings = {'data_pathname': data_pathname,
                         'f0_name': 'L63',
@@ -93,17 +94,17 @@ def declare_jobs(data_pathname, datagen_settings, output_dir, master_job_file, c
                  'f0eps': [0.001, 0.01, 0.05, 0.1, 0.2, 0.5, 1, 2],
                  'trainNumber': [i for i in range(datagen_settings['n_train_traj'])]
                 }
-    all_job_fnames += queue_joblist(combined_settings=combined_settings, shared_settings=shared_settings, output_dir=output_dir, master_job_file=master_job_file, cmd=cmd_py, conda_env=conda_env)
+    all_job_fnames += queue_joblist(combined_settings=combined_settings, shared_settings=shared_settings, output_dir=output_dir, master_job_file=master_job_file, cmd=cmd_py, conda_env=conda_env, hours=hours)
 
     combined_settings['doResidual'] = [0]
     combined_settings['stateType'] = ['stateAndPred']
-    all_job_fnames += queue_joblist(combined_settings=combined_settings, shared_settings=shared_settings, output_dir=output_dir, master_job_file=master_job_file, cmd=cmd_py, conda_env=conda_env)
+    all_job_fnames += queue_joblist(combined_settings=combined_settings, shared_settings=shared_settings, output_dir=output_dir, master_job_file=master_job_file, cmd=cmd_py, conda_env=conda_env, hours=hours)
 
     ## f0-ONLY RUN
     combined_settings['doResidual'] = [1]
     combined_settings['stateType'] = ['state']
     combined_settings['modelType'] = ['f0only']
-    all_job_fnames += queue_joblist(combined_settings=combined_settings, shared_settings=shared_settings, output_dir=output_dir, master_job_file=master_job_file, cmd=cmd_py, conda_env=conda_env)
+    all_job_fnames += queue_joblist(combined_settings=combined_settings, shared_settings=shared_settings, output_dir=output_dir, master_job_file=master_job_file, cmd=cmd_py, conda_env=conda_env, hours=hours)
 
     ## DATA-ONLY RUN
     combined_settings['doResidual'] = [0]
@@ -111,7 +112,7 @@ def declare_jobs(data_pathname, datagen_settings, output_dir, master_job_file, c
     combined_settings['f0eps'] = ['NA']
     combined_settings['stateType'] = ['state']
     combined_settings['modelType'] = ['discrete', 'continuousInterp']
-    all_job_fnames += queue_joblist(combined_settings=combined_settings, shared_settings=shared_settings, output_dir=output_dir, master_job_file=master_job_file, cmd=cmd_py, conda_env=conda_env)
+    all_job_fnames += queue_joblist(combined_settings=combined_settings, shared_settings=shared_settings, output_dir=output_dir, master_job_file=master_job_file, cmd=cmd_py, conda_env=conda_env, hours=hours)
 
     return all_job_fnames, combined_settings
 

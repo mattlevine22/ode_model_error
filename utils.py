@@ -39,7 +39,7 @@ def df_eval(df):
     return final_df
 
 
-def queue_joblist(combined_settings, shared_settings, output_dir, master_job_file, cmd, conda_env=None):
+def queue_joblist(combined_settings, shared_settings, output_dir, master_job_file, cmd, hours=12, conda_env=None):
     nm_list = combined_settings.keys()
     all_settings_list = dict_combiner(combined_settings)
 
@@ -58,7 +58,8 @@ def queue_joblist(combined_settings, shared_settings, output_dir, master_job_fil
             command_flag_dict=command_flag_dict,
             jobfile_dir=jobfile_dir,
             master_job_file=master_job_file, no_submit=True,
-            conda_env=conda_env)
+            conda_env=conda_env,
+            hours=hours)
 
         job_fname_list.append(jobfile_path)
     return job_fname_list
