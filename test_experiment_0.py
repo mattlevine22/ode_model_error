@@ -116,7 +116,7 @@ def declare_jobs(data_pathname, datagen_settings, output_dir, master_job_file, c
     return all_job_fnames, combined_settings
 
 def prioritized_job_sender(all_job_fnames, bash_command, list_of_priorities):
-    pdb.set_trace()
+
     list_of_priorities.append(['']) # this includes all remaining things at the end
     for check_list in list_of_priorities:
         rmv_nms = []
