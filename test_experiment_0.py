@@ -121,7 +121,7 @@ def prioritized_job_sender(all_job_fnames, bash_command, list_of_priorities):
     for check_list in list_of_priorities:
         rmv_nms = []
         for job_fname in all_job_fnames:
-            if all(elem in job_fname for elem in str_list):
+            if all(elem in job_fname for elem in check_list):
                 rmv_nms.append(job_fname)
                 submit_job(job_fname, bash_command=bash_command)
         [all_job_fnames.remove(nm) for nm in rmv_nms]
