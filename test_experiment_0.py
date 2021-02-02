@@ -145,7 +145,22 @@ def init_summary_df(combined_settings, all_job_fnames):
             var_dict['type'] = 'f0only'
         else:
             var_dict['type'] = '{}, {}, resid={}'.format(var_dict['modelType'] , var_dict['stateType'], var_dict['doResidual'])
+
+        # default test_eval.pickle is hifi
+        var_dict['fidelity'] = 'hifi'
         summary_df = summary_df.append(var_dict, ignore_index=True)
+
+        # now read fidelity specific test outputs
+        for fidelity in ['default', 'lowfi', 'medfi', 'hifi', 'hifiPlus']:
+            var_dict['fidelity'] = fidelity
+            var_dict['eval_pickle_fname'] = os.path.join(job_dir, 'test_eval_{}.pickle'.format(fidelity))
+            var_dict['model_fname'] = os.path.join(job_dir, 'Trained_Models/data.pickle')
+            if var_dict['modelType']=='f0only':
+                var_dict['type'] = 'f0only'
+            else:
+                var_dict['type'] = '{}, {}, resid={}'.format(var_dict['modelType'] , var_dict['stateType'], var_dict['doResidual'])
+            summary_df = summary_df.append(var_dict, ignore_index=True)
+
     # add epsilons
     new_df = pd.DataFrame()
     new_df['f0eps'] = [e for e in summary_df.f0eps.unique() if isinstance(e, float)]
@@ -160,6 +175,21 @@ def run_summary(output_dir):
         summary_df = pickle.load(file)
     summary_df = df_eval(df=summary_df)
     metric_list = ['rmse_total', 't_valid_050', 't_valid_005', 'regularization_RF', 'rf_Win_bound', 'rf_bias_bound']
+
+    ## Solver-based summary
+    for f0eps in summary_df.f0eps.unique():
+        for ZY in summary_df.ZY.unique():
+            for t in summary_df.tTrain.unique():
+                for rfd in summary_df.rfDim.unique():
+                    for dt in summary_df.dt.unique():
+                        plot_output_dir = os.path.join(output_dir, 'summary_plots_f0eps{f0eps}_tTrain{t}_rfdim{rfd}_dt{dt}_ZY{ZY}'.format(f0eps=f0eps, t=t, rfd=rfd, dt=dt, ZY))
+                        os.makedirs(plot_output_dir, exist_ok=True)
+                        try:
+                            summarize(df=summary_df[(summary_df.stateType!='stateAndPred') & (summary_df.f0eps==f0eps) & (summary_df.tTrain==t) & (summary_df.rfDim==rfd) & (summary_df.ZY==ZY)], style='usef0', hue='type', x="fidelity", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='solvers_{}')
+                            summarize(df=summary_df[(summary_df.f0eps==f0eps) & (summary_df.tTrain==t) & (summary_df.rfDim==rfd & (summary_df.ZY=='old'))], style='usef0', hue='type', x="fidelity", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='solvers_all_{}')
+                        except:
+                            print('plot failed for:', plot_output_dir)
+
 
     ## Epsilon-based summary
     for dt in summary_df.dt.unique():
@@ -184,7 +214,6 @@ def run_summary(output_dir):
                     summarize(df=summary_df[(summary_df.f0eps==f0eps) & (summary_df.tTrain==t) & (summary_df.rfDim==rfd)], style='usef0', hue='type', x="dt", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='dt_all_{}')
                 except:
                     print('plot failed for:', plot_output_dir)
-
 
 if __name__ == '__main__':
     # if FLAGS.mode=='all':
