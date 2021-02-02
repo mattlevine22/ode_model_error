@@ -182,7 +182,7 @@ def run_summary(output_dir):
             for t in summary_df.tTrain.unique():
                 for rfd in summary_df.rfDim.unique():
                     for dt in summary_df.dt.unique():
-                        plot_output_dir = os.path.join(output_dir, 'summary_plots_f0eps{f0eps}_tTrain{t}_rfdim{rfd}_dt{dt}_ZY{ZY}'.format(f0eps=f0eps, t=t, rfd=rfd, dt=dt, ZY))
+                        plot_output_dir = os.path.join(output_dir, 'summary_plots_f0eps{f0eps}_tTrain{t}_rfdim{rfd}_dt{dt}_ZY{ZY}'.format(f0eps=f0eps, t=t, rfd=rfd, dt=dt, ZY=ZY))
                         os.makedirs(plot_output_dir, exist_ok=True)
                         try:
                             summarize(df=summary_df[(summary_df.stateType!='stateAndPred') & (summary_df.f0eps==f0eps) & (summary_df.tTrain==t) & (summary_df.rfDim==rfd) & (summary_df.ZY==ZY)], style='usef0', hue='type', x="fidelity", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='solvers_{}')
