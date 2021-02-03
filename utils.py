@@ -253,12 +253,15 @@ def generate_data(ode,
 
     # make many training trajectories
     u_train = np.array([simulate_traj(T1=t_transient, T2=t_train) for _ in range(n_train_traj)])
+    udot_train = np.array([[f_ode(0, u_train[k,j]) for j in range(u_train.shape[1])] for k in range(n_train_traj)])
 
     # make many testing trajectories
     u_test = np.array([simulate_traj(T1=t_transient, T2=t_test) for _ in range(n_test_traj)])
+    udot_test = np.array([[f_ode(0, u_test[k,j]) for j in range(u_test.shape[1])] for k in range(n_test_traj)])
 
     # make many validation trajectories
     u_validate = np.array([simulate_traj(T1=t_transient, T2=t_validate) for _ in range(n_validate_traj)])
+    udot_validate = np.array([[f_ode(0, u_validate[k,j]) for j in range(u_validate.shape[1])] for k in range(n_validate_traj)])
 
     # save data
     data = {
@@ -266,6 +269,9 @@ def generate_data(ode,
         "u_train": u_train,
         "u_test": u_test,
         "u_validate": u_validate,
+        "udot_train": udot_train,
+        "udot_test": udot_test,
+        "udot_validate": udot_validate,
         "dt": delta_t
     }
 
