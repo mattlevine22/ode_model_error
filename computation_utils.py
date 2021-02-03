@@ -11,6 +11,16 @@ def matt_xcorr(x, y):
 	xcorr = np.true_divide(foo,normalization)
 	return xcorr
 
+def linear_interp(x_vec, n_min, t, t0, dt):
+	ind_mid = (t-t0) / dt
+	ind_low = max(0, min( int(np.floor(ind_mid)), n_min) )
+	ind_high = min(n_min, int(np.ceil(ind_mid)))
+	v0 = x_vec[ind_low,:]
+	v1 = x_vec[ind_high,:]
+	tmid = ind_mid - ind_low
+	return (1 - tmid) * v0 + tmid * v1
+
+
 def replaceNaN(data):
 	data[np.isnan(data)]=float('Inf')
 	return data
