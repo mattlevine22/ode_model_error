@@ -515,7 +515,7 @@ class IDK(object):
 		if self.diff =='DiffThenInterp':
 			xdot = linear_interp(x_vec=self.xdot_vec, n_min=self.n_min, t=t, t0=0, dt=self.dt)
 		elif self.diff=='TrueDeriv':
-			xdot = self.fTRUE(t=t, y=self.x_t(t=t))
+			xdot = self.scaler.scaleXdot(self.fTRUE(t=t, y=self.x_t(t=t)))
 		elif self.diff=='InterpThenDiff':
 			xdot = np.zeros(self.input_dim)
 			for k in range(self.input_dim):
