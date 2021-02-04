@@ -155,6 +155,7 @@ def run_summary(output_dir):
     summary_df = df_eval(df=summary_df)
     metric_list = ['rmse_total', 't_valid_050', 't_valid_005', 'regularization_RF', 'rf_Win_bound', 'rf_bias_bound']
 
+    pdb.set_trace()
     # subset summary
     summary_df = summary_df[(summary_df.doResidual==0) & (summary_df.usef0==0)]
 
@@ -172,6 +173,7 @@ def run_summary(output_dir):
                         except:
                             print('plot failed for:', plot_output_dir)
 
+    pdb.set_trace()
 
     ## Epsilon-based summary
     for ZY in summary_df.ZY.unique():
@@ -185,6 +187,8 @@ def run_summary(output_dir):
                         summarize(df=summary_df[(summary_df.dt==dt) & (summary_df.tTrain==t) & (summary_df.rfDim==rfd) & (summary_df.ZY==ZY) & (summary_df.fidelity=='hifi')], style='diff', hue='modelType', x="f0eps", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='eps_all_{}')
                     except:
                         print('plot failed for:', plot_output_dir)
+
+    pdb.set_trace()
 
     ## DeltaT-based summary
     for ZY in summary_df.ZY.unique():
