@@ -339,7 +339,7 @@ class IDK(object):
 		# loop over test sets
 		for n in range(n_traj):
 			print('Evaluating',setnm, 'set #', n+1, '/', n_traj)
-			test_input_sequence = self.subsample(x=eval_data[n], t_end=self.t_test)
+			test_input_sequence = self.subsample(x=eval_data[n], t_end=self.t_test, dt_subsample=self.dt_test)
 			eval_dict = self.eval(input_sequence=test_input_sequence, t_end=self.t_test, set_name=setnm+fidelity_name+str(n), do_plots=do_plots)
 			test_eval.append(eval_dict)
 
@@ -375,9 +375,11 @@ class IDK(object):
 		if 'discrete' in self.modelType or self.f0only:
 			prediction = []
 			prediction.append(ic)
-			n_steps = int(t_end / self.dt)
+			n_steps = int(t_end / self.dt_test)
+			n_discrete_iters = int(self.dt_test / self.dt)
 			for n in range(n_steps):
-				ic = self.predict_next(x_input=ic)
+				for m in range(n_discrete_iters):
+					ic = self.predict_next(x_input=ic)
 				prediction.append(ic)
 			prediction = np.array(prediction)
 		elif ('continuous' in self.modelType) or ('Euler' in self.modelType):
@@ -385,8 +387,8 @@ class IDK(object):
 			# 	self.solver_settings['method'] = 'Euler'
 			# 	self.solver_settings['dt'] = self.dt
 
-			N = int(t_end / self.dt) + 1
-			t_eval = self.dt*np.arange(N)
+			N = int(t_end / self.dt_test) + 1
+			t_eval = self.dt_test*np.arange(N)
 			t_span = [t_eval[0], t_eval[-1]]
 			prediction = my_solve_ivp(ic=ic, f_rhs=self.rhs, t_eval=t_eval, t_span=t_span, settings=self.solver_settings)
 		return prediction
@@ -496,10 +498,10 @@ class IDK(object):
 		with open(save_path, "wb") as file:
 			pickle.dump(pd_stat, file, pickle.HIGHEST_PROTOCOL)
 
-	def subsample(self, x, t_end):
+	def subsample(self, x, t_end, dt_given=self.dt_rawdata, dt_subsample=self.dt):
 		# x: time x dims
-		n_stop = int(t_end / self.dt_rawdata) + 1
-		keep_inds = [int(j) for j in np.arange(0, n_stop, self.dt / self.dt_rawdata)]
+		n_stop = int(t_end / dt_given) + 1
+		keep_inds = [int(j) for j in np.arange(0, n_stop, dt_subsample / dt_given)]
 		x_sub = x[keep_inds]
 		return x_sub
 

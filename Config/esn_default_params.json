@@ -1,5 +1,6 @@
 {
-  "retest": 0,
+  "dt_test": 0.1,
+  "retest": 1,
   "validate_hyperparameters": 1,
   "regularization_RF": 1e-7,
   "scaler_tt": "standard",
