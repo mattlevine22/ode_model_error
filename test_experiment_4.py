@@ -85,7 +85,7 @@ def declare_jobs(data_pathname, datagen_settings, output_dir, master_job_file, c
                  'usef0': [0],
                  'doResidual': [0],
                  'stateType': ['state'],
-                 'dt': [0.0001, 0.001],
+                 'dt': [0.0001, 0.001, 0.0005, 0.005],
                  'f0eps': [0],
                  'trainNumber': [i for i in range(datagen_settings['n_train_traj'])]
                 }
