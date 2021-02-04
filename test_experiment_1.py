@@ -155,6 +155,7 @@ def run_summary(output_dir):
     summary_df = df_eval(df=summary_df)
     metric_list = ['rmse_total', 't_valid_050', 't_valid_005', 'regularization_RF', 'rf_Win_bound', 'rf_bias_bound']
 
+    pdb.set_trace()
     # subset summary
     summary_df = summary_df[(summary_df.doResidual==0) & (summary_df.usef0==0)]
 
