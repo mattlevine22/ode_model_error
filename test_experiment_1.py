@@ -155,7 +155,6 @@ def run_summary(output_dir):
     summary_df = df_eval(df=summary_df)
     metric_list = ['rmse_total', 't_valid_050', 't_valid_005', 'regularization_RF', 'rf_Win_bound', 'rf_bias_bound']
 
-    pdb.set_trace()
     # subset summary
     summary_df = summary_df[(summary_df.doResidual==0) & (summary_df.usef0==0)]
 
@@ -169,7 +168,7 @@ def run_summary(output_dir):
                         os.makedirs(plot_output_dir, exist_ok=True)
                         try:
                             summarize(df=summary_df[(summary_df.stateType!='stateAndPred') & (summary_df.f0eps==f0eps) & (summary_df.tTrain==t) & (summary_df.rfDim==rfd) & (summary_df.ZY==ZY)], style='diff', hue='modelType', x="fidelity", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='solvers_{}')
-                            summarize(df=summary_df[(summary_df.f0eps==f0eps) & (summary_df.tTrain==t) & (summary_df.rfDim==rfd & (summary_df.ZY==ZY))], style='diff', hue='modelType', x="fidelity", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='solvers_all_{}')
+                            summarize(df=summary_df[(summary_df.f0eps==f0eps) & (summary_df.tTrain==t) & (summary_df.rfDim==rfd) & (summary_df.ZY==ZY)], style='diff', hue='modelType', x="fidelity", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='solvers_all_{}')
                         except:
                             print('plot failed for:', plot_output_dir)
 
