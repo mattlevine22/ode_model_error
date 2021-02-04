@@ -44,10 +44,12 @@ def get_settings(settings_path):
     settings["delta_t"] = settings["dt"]
     if settings["usef0"]:
         physics = L63()
-        settings["fTRUE"] = lambda t, y: physics.rhs(y, t)
         eps = settings['f0eps']
         physics.b = physics.b*(1+eps)
         settings["f0"] = lambda t, y: physics.rhs(y, t)
+    if settings["diff"]=="TrueDeriv":
+        physics = L63()
+        settings["fTRUE"] = lambda t, y: physics.rhs(y, t)
 
     return settings
 
