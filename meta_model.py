@@ -357,7 +357,7 @@ class IDK(object):
 		# get predictions
 		prediction = self.make_predictions(ic=ic, t_end=t_end)
 		prediction = self.scaler.descaleData(prediction)
-		eval_dict = computeErrors(target, prediction, self.scaler.data_std, dt=self.dt)
+		eval_dict = computeErrors(target, prediction, self.scaler.data_std, dt=self.dt_test)
 
 		# add hyperparameters to test_eval.pickle output
 		try:
