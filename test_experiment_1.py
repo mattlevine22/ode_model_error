@@ -112,6 +112,7 @@ def prioritized_job_sender(all_job_fnames, bash_command, list_of_priorities):
     return
 
 def init_summary_df(combined_settings, all_job_fnames):
+    fidelity_list = ['Euler', 'default', 'lowfi', 'medfi', 'hifi', 'hifiPlus']
     summary_df = pd.DataFrame()
     my_vars = list(combined_settings.keys())
     for jobfile_path in all_job_fnames:
@@ -130,7 +131,7 @@ def init_summary_df(combined_settings, all_job_fnames):
         summary_df = summary_df.append(var_dict, ignore_index=True)
 
         # now read fidelity specific test outputs
-        for fidelity in ['Euler', 'default', 'lowfi', 'medfi', 'hifi', 'hifiPlus']:
+        for fidelity in fidelity_list:
             var_dict['fidelity'] = fidelity
             var_dict['eval_pickle_fname'] = os.path.join(job_dir, 'test_eval_{}.pickle'.format(fidelity))
             var_dict['model_fname'] = os.path.join(job_dir, 'Trained_Models/data.pickle')
@@ -146,7 +147,10 @@ def init_summary_df(combined_settings, all_job_fnames):
     new_df['usef0'] = 0
     f0_df = pd.merge(summary_df.loc[summary_df.usef0==0, summary_df.columns != 'f0eps'], new_df, on='usef0', how='left')
     summary_df = pd.concat([summary_df.loc[summary_df.usef0==1], f0_df], sort=False)
-    return summary_df
+
+    # order the categorical data
+    summary_df.fidelity = pd.Categorical(summary_df.fidelity, categories=fidelity_list, ordered=True)
+    return summary_d
 
 def run_summary(output_dir):
     summary_df_name = os.path.join(output_dir, 'summary_df.pickle')
@@ -158,8 +162,6 @@ def run_summary(output_dir):
     # subset summary
     summary_df = summary_df[(summary_df.doResidual==0) & (summary_df.usef0==0)]
 
-    pdb.set_trace()
-    
     ## Solver-based summary
     for f0eps in summary_df.f0eps.unique():
         for ZY in summary_df.ZY.unique():
