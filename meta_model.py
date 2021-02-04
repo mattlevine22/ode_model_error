@@ -201,7 +201,7 @@ class IDK(object):
 			self.xdot_vec[-1] = self.xdot_vec[-2]
 		else:
 			print('Not differentiating.')
-			self.differentiation_error = None
+			self.differentiation_error = np.nan
 			return
 
 		self.differentiation_error = np.mean((self.xdot_vec-self.xdot_vec_TRUE)**2)
