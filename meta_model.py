@@ -509,10 +509,11 @@ class IDK(object):
 	def xdot_t(self, t):
 		'''differentiate self.x_vec at time t using stored component-wise spline interpolant'''
 
-		if self.diff in ['TrueDeriv', 'DiffThenInterp']:
+		if self.diff =='DiffThenInterp':
 			xdot = linear_interp(x_vec=self.xdot_vec, n_min=self.n_min, t=t, t0=0, dt=self.dt)
+		elif self.diff=='TrueDeriv':
+			xdot = self.fTRUE(t=t, self.x_t(t=t))
 		elif self.diff=='InterpThenDiff':
-			# initialize output
 			xdot = np.zeros(self.input_dim)
 			for k in range(self.input_dim):
 				xdot[k] = self.xdot_spline[k](t)
