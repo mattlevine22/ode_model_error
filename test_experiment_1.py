@@ -155,6 +155,9 @@ def run_summary(output_dir):
     summary_df = df_eval(df=summary_df)
     metric_list = ['rmse_total', 't_valid_050', 't_valid_005', 'regularization_RF', 'rf_Win_bound', 'rf_bias_bound']
 
+    # subset summary
+    summary_df = summary_df[(summary_df.doResidual==0) & (summary_df.usef0==0)]
+
     ## Solver-based summary
     for f0eps in summary_df.f0eps.unique():
         for ZY in summary_df.ZY.unique():
@@ -164,8 +167,8 @@ def run_summary(output_dir):
                         plot_output_dir = os.path.join(output_dir, 'summary_plots_f0eps{f0eps}_tTrain{t}_rfdim{rfd}_dt{dt}_ZY{ZY}'.format(f0eps=f0eps, t=t, rfd=rfd, dt=dt, ZY=ZY))
                         os.makedirs(plot_output_dir, exist_ok=True)
                         try:
-                            summarize(df=summary_df[(summary_df.stateType!='stateAndPred') & (summary_df.f0eps==f0eps) & (summary_df.tTrain==t) & (summary_df.rfDim==rfd) & (summary_df.ZY==ZY)], style='usef0', hue='type', x="fidelity", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='solvers_{}')
-                            summarize(df=summary_df[(summary_df.f0eps==f0eps) & (summary_df.tTrain==t) & (summary_df.rfDim==rfd & (summary_df.ZY==ZY))], style='usef0', hue='type', x="fidelity", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='solvers_all_{}')
+                            summarize(df=summary_df[(summary_df.stateType!='stateAndPred') & (summary_df.f0eps==f0eps) & (summary_df.tTrain==t) & (summary_df.rfDim==rfd) & (summary_df.ZY==ZY)], style='diff', hue='modelType', x="fidelity", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='solvers_{}')
+                            summarize(df=summary_df[(summary_df.f0eps==f0eps) & (summary_df.tTrain==t) & (summary_df.rfDim==rfd & (summary_df.ZY==ZY))], style='diff', hue='modelType', x="fidelity", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='solvers_all_{}')
                         except:
                             print('plot failed for:', plot_output_dir)
 
@@ -177,8 +180,8 @@ def run_summary(output_dir):
                 plot_output_dir = os.path.join(output_dir, 'summary_plots_dt{dt}_tTrain{t}_rfdim{rfd}'.format(dt=dt, t=t, rfd=rfd))
                 os.makedirs(plot_output_dir, exist_ok=True)
                 try:
-                    summarize(df=summary_df[(summary_df.stateType!='stateAndPred') & (summary_df.dt==dt) & (summary_df.tTrain==t) & (summary_df.rfDim==rfd)], style='usef0', hue='type', x="f0eps", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='eps_{}')
-                    summarize(df=summary_df[(summary_df.dt==dt) & (summary_df.tTrain==t) & (summary_df.rfDim==rfd)], style='usef0', hue='type', x="f0eps", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='eps_all_{}')
+                    summarize(df=summary_df[(summary_df.stateType!='stateAndPred') & (summary_df.dt==dt) & (summary_df.tTrain==t) & (summary_df.rfDim==rfd)], style='diff', hue='modelType', x="f0eps", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='eps_{}')
+                    summarize(df=summary_df[(summary_df.dt==dt) & (summary_df.tTrain==t) & (summary_df.rfDim==rfd)], style='diff', hue='modelType', x="f0eps", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='eps_all_{}')
                 except:
                     print('plot failed for:', plot_output_dir)
 
@@ -189,8 +192,8 @@ def run_summary(output_dir):
                 plot_output_dir = os.path.join(output_dir, 'summary_plots_f0eps{f0eps}_tTrain{t}_rfdim{rfd}'.format(f0eps=f0eps, t=t, rfd=rfd))
                 os.makedirs(plot_output_dir, exist_ok=True)
                 try:
-                    summarize(df=summary_df[(summary_df.stateType!='stateAndPred') & (summary_df.f0eps==f0eps) & (summary_df.tTrain==t) & (summary_df.rfDim==rfd)], style='usef0', hue='type', x="dt", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='dt_{}')
-                    summarize(df=summary_df[(summary_df.f0eps==f0eps) & (summary_df.tTrain==t) & (summary_df.rfDim==rfd)], style='usef0', hue='type', x="dt", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='dt_all_{}')
+                    summarize(df=summary_df[(summary_df.stateType!='stateAndPred') & (summary_df.f0eps==f0eps) & (summary_df.tTrain==t) & (summary_df.rfDim==rfd)], style='diff', hue='modelType', x="dt", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='dt_{}')
+                    summarize(df=summary_df[(summary_df.f0eps==f0eps) & (summary_df.tTrain==t) & (summary_df.rfDim==rfd)], style='diff', hue='modelType', x="dt", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='dt_all_{}')
                 except:
                     print('plot failed for:', plot_output_dir)
 
