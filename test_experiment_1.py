@@ -40,7 +40,7 @@ def main(cmd_py, output_dir, cmd_job, datagen, conda_env, **kwargs):
                         't_test': 20,
                         't_validate': 20,
                         'n_test_traj': 10,
-                        'n_train_traj': 10,
+                        'n_train_traj': 2,
                         'n_validate_traj': 7,
                         'delta_t': 0.0001,
                         'solver_type': 'hifiPlus',
@@ -81,7 +81,7 @@ def declare_jobs(data_pathname, datagen_settings, output_dir, master_job_file, c
     ## HYBRID PHYSICS RUNS in continuous-time
     combined_settings = { 'modelType': ['continuous', 'Euler', 'discrete'],
                  'diff': ['InterpThenDiff', 'DiffThenInterp', 'TrueDeriv', 'NA'],
-                 'ZY': ['new', 'old'],
+                 'ZY': ['old'],
                  'rfDim': [200],
                  'tTrain': [100],
                  'usef0': [0, 1],
