@@ -81,7 +81,7 @@ def declare_jobs(data_pathname, datagen_settings, output_dir, master_job_file, c
     ## HYBRID PHYSICS RUNS in continuous-time
     combined_settings = { 'modelType': ['continuous', 'Euler', 'discrete'],
                  'diff': ['InterpThenDiff', 'DiffThenInterp', 'TrueDeriv', 'NA'],
-                 'ZY': ['old'],
+                 'ZY': ['old', 'new'],
                  'rfDim': [200],
                  'tTrain': [100],
                  'usef0': [0],
