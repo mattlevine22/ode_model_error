@@ -498,7 +498,12 @@ class IDK(object):
 		with open(save_path, "wb") as file:
 			pickle.dump(pd_stat, file, pickle.HIGHEST_PROTOCOL)
 
-	def subsample(self, x, t_end, dt_given=self.dt_rawdata, dt_subsample=self.dt):
+	def subsample(self, x, t_end, dt_given=None, dt_subsample=None):
+		if dt_given is None:
+			dt_given = self.dt_rawdata
+
+		if dt_subsample is None:
+			dt_subsample = self.dt
 		# x: time x dims
 		n_stop = int(t_end / dt_given) + 1
 		keep_inds = [int(j) for j in np.arange(0, n_stop, dt_subsample / dt_given)]
