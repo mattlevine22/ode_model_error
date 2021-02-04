@@ -83,6 +83,9 @@ class IDK(object):
 		else:
 			self.f0 = 0
 
+		if self.diff=='TrueDeriv':
+			self.fTRUE = params["fTRUE"]
+
 		# count the augmented input dimensions (i.e. [x(t); f0(x(t))-x(t)])
 		if self.component_wise:
 			self.input_dim_rf = 1 + self.rf_error_input
