@@ -201,9 +201,11 @@ class IDK(object):
 			self.xdot_vec[-1] = self.xdot_vec[-2]
 		else:
 			print('Not differentiating.')
+			self.differentiation_error = None
 			return
 
-		print('|XdotInferred - XdotTRUE|=', np.mean((self.xdot_vec-self.xdot_vec_TRUE)**2))
+		self.differentiation_error = np.mean((self.xdot_vec-self.xdot_vec_TRUE)**2)
+		print('|XdotInferred - XdotTRUE|=', self.differentiation_error)
 
 
 	def setup_the_learning(self):
@@ -737,6 +739,7 @@ class IDK(object):
 			print("Number of trainable parameters: {}".format(self.n_trainable_parameters))
 			print("Total number of parameters: {}".format(self.n_model_parameters))
 			data = {
+			"differentiation_error":self.differentiation_error
 			"n_trainable_parameters":self.n_trainable_parameters,
 			"n_model_parameters":self.n_model_parameters,
 			"total_training_time":self.total_training_time,
@@ -750,6 +753,7 @@ class IDK(object):
 			}
 		elif 'GP' in self.modelType:
 			data = {
+			"differentiation_error":self.differentiation_error
 			"scaler":self.scaler,
 			"total_training_time":self.total_training_time,
 			"gpr": self.gpr
