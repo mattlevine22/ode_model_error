@@ -54,6 +54,11 @@ class IDK(object):
 		for key in params:
 			exec('self.{} = params["{}"]'.format(key, key))
 
+		if 'New' in self.modelType:
+			self.ZY = 'new'
+		elif 'Old' in self.modelType:
+			self.ZY = 'old'
+
 		self.scaler = scaler(tt=self.scaler_tt, tt_derivative=self.scaler_tt_derivatives, component_wise=self.component_wise)
 		self.fig_dir = os.path.join(self.saving_path, params["fig_dir"])
 		self.model_dir = os.path.join(self.saving_path, params["model_dir"])
@@ -204,7 +209,7 @@ class IDK(object):
 			self.xdot_vec[-1] = self.xdot_vec[-2]
 		else:
 			print('Not differentiating.')
-			self.differentiation_error = np.nan
+			self.differentiation_error = None
 			return
 
 		self.differentiation_error = np.mean((self.xdot_vec-self.xdot_vec_TRUE)**2)
