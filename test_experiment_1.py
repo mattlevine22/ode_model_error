@@ -130,7 +130,7 @@ def init_summary_df(combined_settings, all_job_fnames):
         summary_df = summary_df.append(var_dict, ignore_index=True)
 
         # now read fidelity specific test outputs
-        for fidelity in ['default', 'lowfi', 'medfi', 'hifi', 'hifiPlus']:
+        for fidelity in ['Euler', 'default', 'lowfi', 'medfi', 'hifi', 'hifiPlus']:
             var_dict['fidelity'] = fidelity
             var_dict['eval_pickle_fname'] = os.path.join(job_dir, 'test_eval_{}.pickle'.format(fidelity))
             var_dict['model_fname'] = os.path.join(job_dir, 'Trained_Models/data.pickle')
