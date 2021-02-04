@@ -777,3 +777,4 @@ class IDK(object):
 				self.regularization_RF = data["regularization_RF"]
 				self.rf_Win_bound = data["rf_Win_bound"]
 				self.rf_bias_bound = data["rf_bias_bound"]
+				self.differentiation_error = data["differentiation_error"]
