@@ -100,7 +100,9 @@ class IDK(object):
 		print('Fidelity:', style)
 		try:
 			self.solver_settings = self.solver_dict[style]
-			if style=='lowfi':
+			if style=='Euler':
+				self.solver_settings['dt'] = self.dt * self.solver_settings['dt_frac']
+			elif style=='lowfi':
 				self.quad_limit = self.default_quad_limit / 10
 			else:
 				self.quad_limit = self.default_quad_limit
@@ -118,14 +120,15 @@ class IDK(object):
 			# Pickle the "data" dictionary using the highest protocol available.
 			data = pickle.load(file)
 			self.dt_rawdata = data["dt"]
-			train_input_sequence = self.subsample(x=data["u_train"][self.trainNumber, :, :self.input_dim], t_end=self.tTrain)
+			self.train_input_sequence = self.scaler.scaleData(self.subsample(x=data["u_train"][self.trainNumber, :, :self.input_dim], t_end=self.tTrain))
+			self.train_input_sequence_dot = self.scaler.scaleXdot(self.subsample(x=data["udot_train"][self.trainNumber, :, :self.input_dim], t_end=self.tTrain))
 			del data
-		# scale training data
-		self.train_input_sequence = self.scaler.scaleData(train_input_sequence)
 
 		if self.f0only:
 			self.saveModel()
 			return
+
+		self.setup_timeseries()
 
 		# Do a hyperparameter optimization using a validation step
 		self.set_fidelity('medfi')
@@ -164,6 +167,7 @@ class IDK(object):
 			log_path = os.path.join(self.logfile_dir, "BayesOpt_reg_log.json")
 			logger = JSONLogger(path=log_path) #conda version doesnt have RESET feature
 			optimizer.subscribe(Events.OPTIMIZATION_STEP, logger)
+			optimizer.probe(params={"log_regularization_RF": np.log10(self.regularization_RF)}, lazy=True)
 			optimizer.maximize(init_points=5, n_iter=30, acq='ucb')
 			best_param_dict = optimizer.max['params']
 			best_quality = optimizer.max['target']
@@ -177,18 +181,75 @@ class IDK(object):
 		self.doNewSolving()
 		self.saveModel()
 
-	def setup_the_learning(self):
-		tl = self.train_input_sequence.shape[0] - self.dynamics_length
+	def setup_timeseries(self):
+		self.xdot_vec_TRUE = np.copy(self.train_input_sequence_dot)
+		self.x_vec = np.copy(self.train_input_sequence)
+		self.x_vec_raw = self.scaler.descaleData(self.x_vec)
+		t_vec = self.dt*np.arange(self.x_vec.shape[0])
+		# get derivative
+		if self.diff == 'TrueDeriv': # use true derivative
+			self.xdot_vec = np.copy(self.xdot_vec_TRUE)
+		elif self.diff == 'InterpThenDiff': # do spline derivativer
+			self.xdot_spline = [CubicSpline(x=t_vec, y=self.x_vec[:,k]).derivative() for k in range(self.input_dim)]
+			# get m(t) for all time JUST to have its statistics for normalization ahead of time
+			self.xdot_vec = np.array([self.xdot_spline[k](t_vec) for k in range(self.input_dim)]).T
+		elif self.diff == 'DiffThenInterp': # do spline derivativer
+			self.xdot_vec = np.zeros(self.xdot_vec_TRUE.shape)
+			for k in range(len(t_vec)-1):
+				self.xdot_vec[k] = (self.x_vec[k+1] - self.x_vec[k]) / self.dt
+			# need to deal with boundary issue
+			self.xdot_vec[-1] = self.xdot_vec[-2]
+		else:
+			print('Not differentiating.')
+			return
 
-		if self.modelType=='continuousInterp':
+		print('|XdotInferred - XdotTRUE|=', np.mean((self.xdot_vec-self.xdot_vec_TRUE)**2))
+
+
+	def setup_the_learning(self):
+		tl = self.x_vec.shape[0] - self.dynamics_length
+
+		if 'continuous' in self.modelType:
 			## Random WEIGHTS
 			self.set_random_weights()
 			self.continuousInterpRF()
+		elif 'Euler' in self.modelType:
+			if self.component_wise:
+				raise ValueError('component wise not yet set up for Euler')
+			x_input = np.copy(self.x_vec)
+			x_output = np.copy(self.xdot_vec)
+			x_input_descaled = self.scaler.descaleData(x_input)
+
+			if self.usef0:
+				predf0 = self.scaler.scaleXdot(np.array([self.f0(0, x_input_descaled[i]) for i in range(x_input.shape[0])]))
+			if self.rf_error_input:
+				rf_input = np.hstack((x_input, predf0))
+			else:
+				rf_input = x_input
+			if self.doResidual:
+				x_output -= predf0
+
+			if 'GP' in self.modelType:
+				GP_ker = ConstantKernel(1.0, (1e-5, 1e5)) * RBF(1.0, (1e-10, 1e+6)) + WhiteKernel(1.0, (1e-10, 1e6))
+				my_gpr = GaussianProcessRegressor(
+					kernel = GP_ker,
+					n_restarts_optimizer = 15,
+					alpha = 1e-10)
+				self.gpr = my_gpr.fit(X=rf_input, y=x_output)
+			else:
+				self.set_random_weights()
+				Q = np.array([self.q_t(rf_input[i]) for i in range(rf_input.shape[0])])
+				self.Z = Q.T @ Q / x_input.shape[0] # normalize by length
+				self.Y = Q.T @ x_output / x_input.shape[0]
+				self.reg_dim = self.Z.shape[0]
+				print('|Z| =', np.mean(self.Z**2))
+				print('|Y| =', np.mean(self.Y**2))
+
 		elif 'discrete' in self.modelType:
 			if self.component_wise:
 				raise ValueError('component wise not yet set up for discrete')
-			x_output = np.copy(self.train_input_sequence[1:])
-			x_input = np.copy(self.train_input_sequence[:-1])
+			x_output = np.copy(self.x_vec[1:])
+			x_input = np.copy(self.x_vec[:-1])
 			x_input_descaled = self.scaler.descaleData(x_input)
 
 			if self.usef0:
@@ -215,13 +276,12 @@ class IDK(object):
 					n_restarts_optimizer = 15,
 					alpha = 1e-10)
 				self.gpr = my_gpr.fit(X=rf_input, y=x_output)
-				return
 
 		# Store something useful for plotting
 		# self.first_train_vec = train_input_sequence[(self.dynamics_length+1),:]
 
 	def test(self):
-		for fidelity in ['default', 'lowfi', 'medfi', 'hifi', 'hifiPlus']:
+		for fidelity in ['Euler', 'default', 'lowfi', 'medfi', 'hifi', 'hifiPlus']:
 			self.set_fidelity(fidelity)
 			test_eval = self.testingOnSet(setnm='test', fidelity_name=fidelity)
 			self.write_stats(pd_stat=test_eval, stat_name='test_eval_{}'.format(fidelity))
@@ -310,7 +370,11 @@ class IDK(object):
 				ic = self.predict_next(x_input=ic)
 				prediction.append(ic)
 			prediction = np.array(prediction)
-		elif 'continuous' in self.modelType:
+		elif ('continuous' in self.modelType) or ('Euler' in self.modelType):
+			# if 'Euler' in self.modelType:
+			# 	self.solver_settings['method'] = 'Euler'
+			# 	self.solver_settings['dt'] = self.dt
+
 			N = int(t_end / self.dt) + 1
 			t_eval = self.dt*np.arange(N)
 			t_span = [t_eval[0], t_eval[-1]]
@@ -339,7 +403,7 @@ class IDK(object):
 				u_next = pred + self.gpr.predict(rf_input)
 			else:
 				u_next = pred + self.W_out_markov @ self.q_t(rf_input)
-		elif self.modelType=='continuousInterp':
+		elif 'continuous' in self.modelType:
 			t_span = [t0, t0+self.dt]
 			t_eval = np.array([t0+self.dt])
 			u_next = my_solve_ivp(ic=x_input, f_rhs=self.rhs, t_span=t_span, t_eval=t_eval, settings=self.solver_settings)
@@ -438,22 +502,20 @@ class IDK(object):
 
 	def x_t(self, t, t0=0):
 		#linearly interpolate self.x_vec at time t
-		ind_mid = (t-t0) / self.dt
-		ind_low = max(0, min( int(np.floor(ind_mid)), self.n_min) )
-		ind_high = min(self.n_min, int(np.ceil(ind_mid)))
-		v0 = self.x_vec[ind_low,:]
-		v1 = self.x_vec[ind_high,:]
-		tmid = ind_mid - ind_low
-
-		return (1 - tmid) * v0 + tmid * v1
+		return linear_interp(x_vec=self.x_vec, n_min=self.n_min, t=t, t0=t0, dt=self.dt)
 
 	def xdot_t(self, t):
 		'''differentiate self.x_vec at time t using stored component-wise spline interpolant'''
 
-		# initialize output
-		xdot = np.zeros(self.input_dim)
-		for k in range(self.input_dim):
-			xdot[k] = self.xdot_spline[k](t)
+		if self.diff in ['TrueDeriv', 'DiffThenInterp']:
+			xdot = linear_interp(x_vec=self.xdot_vec, n_min=self.n_min, t=t, t0=0, dt=self.dt)
+		elif self.diff=='InterpThenDiff':
+			# initialize output
+			xdot = np.zeros(self.input_dim)
+			for k in range(self.input_dim):
+				xdot[k] = self.xdot_spline[k](t)
+		else:
+			raise ValueError('{} not a recognized differentiation method'.format(self.diff))
 		return xdot
 
 	def mscaled(self, t, x, xdot):
@@ -508,26 +570,16 @@ class IDK(object):
 		return S
 
 	def continuousInterpRF(self):
-
-		self.x_vec = self.train_input_sequence
 		self.n_min = self.x_vec.shape[0]-1
-		self.x_vec_raw = self.scaler.descaleData(self.x_vec)
-
-		# get spline derivative
-		t_vec = self.dt*np.arange(self.x_vec.shape[0])
-		self.xdot_spline = [CubicSpline(x=t_vec, y=self.x_vec[:,k]).derivative() for k in range(self.input_dim)]
-
-		# get m(t) for all time JUST to have its statistics for normalization ahead of time
-		xdot_vec = np.array([self.xdot_spline[k](t_vec) for k in range(self.input_dim)]).T
 
 		if self.doResidual:
 			f0_vec = np.array([self.f0(0, x) for x in self.x_vec_raw])
 			# xdot(t) = f0(x(t)) + m(t)
 			# so, m(t) = xdot(t) - f0(x(t))
-			m_vec = xdot_vec - self.scaler.scaleXdot(f0_vec)
+			m_vec = self.xdot_vec - self.scaler.scaleXdot(f0_vec)
 			self.scaler.scaleM(m_vec) # just stores statistics
 		else:
-			self.scaler.scaleM(xdot_vec) # just stores statistics
+			self.scaler.scaleM(self.xdot_vec) # just stores statistics
 
 		# T_warmup = self.dt*dynamics_length
 		T_warmup = 0
@@ -603,7 +655,7 @@ class IDK(object):
 
 
 	def doNewSolving(self, do_plots=True):
-		if self.modelType in ['continuousInterp', 'discrete']:
+		if 'GP' not in self.modelType:
 			print('Solving inverse problem W = (Z+rI)^-1 Y...')
 			# regI = np.identity(self.Z.shape[0])
 			regI = np.identity(self.reg_dim)
@@ -624,8 +676,6 @@ class IDK(object):
 			res = (self.Z + regI) @ W_out_all.T - self.Y
 			mse = np.mean(res**2)
 			print('Inversion MSE for lambda_RF={lrf} is {mse} with normalized |Wout|={nrm}'.format(lrf=self.regularization_RF, mse=mse, nrm=np.mean(W_out_all**2)))
-		elif self.modelType in ['discreteGP']:
-			pass
 
 	def newMethod_getIC(self, T_warmup):
 		# generate ICs for training integration
@@ -680,7 +730,7 @@ class IDK(object):
 			data = {
 			"scaler":self.scaler
 			}
-		elif self.modelType in ['continuousInterp', 'discrete']:
+		elif 'GP' not in self.modelType:
 			self.n_trainable_parameters = np.size(self.W_out_markov)
 			self.n_model_parameters = np.size(self.W_in_markov) + np.size(self.b_h_markov)
 			self.n_model_parameters += self.n_trainable_parameters
@@ -698,7 +748,7 @@ class IDK(object):
 			"rf_Win_bound":self.rf_Win_bound,
 			"rf_bias_bound":self.rf_bias_bound
 			}
-		elif self.modelType=='discreteGP':
+		elif 'GP' in self.modelType:
 			data = {
 			"scaler":self.scaler,
 			"total_training_time":self.total_training_time,
