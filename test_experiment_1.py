@@ -150,7 +150,7 @@ def init_summary_df(combined_settings, all_job_fnames):
 
     # order the categorical data
     summary_df.fidelity = pd.Categorical(summary_df.fidelity, categories=fidelity_list, ordered=True)
-    return summary_d
+    return summary_df
 
 def run_summary(output_dir):
     summary_df_name = os.path.join(output_dir, 'summary_df.pickle')
