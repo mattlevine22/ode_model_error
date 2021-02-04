@@ -87,8 +87,8 @@ def declare_jobs(data_pathname, datagen_settings, output_dir, master_job_file, c
                  'usef0': [0, 1],
                  'doResidual': [0, 1],
                  'stateType': ['state'],
-                 'dt': [0.0001, 0.001, 0.01, 0.1],
-                 'f0eps': [0.001, 0.01, 0.1, 1],
+                 'dt': [0.001, 0.01, 0.1],
+                 'f0eps': [0.001, 0.01, 0.1],
                  'trainNumber': [i for i in range(datagen_settings['n_train_traj'])]
                 }
     all_job_fnames += queue_joblist(combined_settings=combined_settings, shared_settings=shared_settings, output_dir=output_dir, master_job_file=master_job_file, cmd=cmd_py, conda_env=conda_env, hours=hours)
