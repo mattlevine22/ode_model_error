@@ -158,6 +158,8 @@ def run_summary(output_dir):
     # subset summary
     summary_df = summary_df[(summary_df.doResidual==0) & (summary_df.usef0==0)]
 
+    pdb.set_trace()
+    
     ## Solver-based summary
     for f0eps in summary_df.f0eps.unique():
         for ZY in summary_df.ZY.unique():
