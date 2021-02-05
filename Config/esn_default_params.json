@@ -9,7 +9,7 @@
   "component_wise": 0,
   "rf_Win_bound": 1.2,
   "rf_bias_bound": 5,
-  "rf_dim": 200,
+  "rfDim": 200,
   "dt_fast_frac": 1,
   "rf_error_input": 0,
   "model_dir": "Trained_Models",
