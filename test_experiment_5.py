@@ -121,8 +121,12 @@ def init_summary_df(combined_settings, all_job_fnames):
         var_dict['model_fname'] = os.path.join(job_dir, 'Trained_Models/data.pickle')
         if var_dict['modelType']=='f0only':
             var_dict['type'] = 'f0only'
-        else:
+            var_dict['contName'] = 'f0only'
+        elif var_dict['modelType']=='rhs':
             var_dict['type'] = '{}, {}, resid={}, diff={}'.format(var_dict['modelType'] , var_dict['stateType'], var_dict['doResidual'], var_dict['diff'])
+            var_dict['contName'] = 'rhs w/ diff={}, costInt={}'.format( var_dict['diff'], var_dict['costIntegration'])
+        elif var_dict['modelType']=='Psi':
+            var_dict['contName'] = 'Psi'
 
         # default test_eval.pickle is hifi
         var_dict['fidelity'] = 'hifi'
@@ -135,8 +139,12 @@ def init_summary_df(combined_settings, all_job_fnames):
             var_dict['model_fname'] = os.path.join(job_dir, 'Trained_Models/data.pickle')
             if var_dict['modelType']=='f0only':
                 var_dict['type'] = 'f0only'
-            else:
+                var_dict['contName'] = 'f0only'
+            elif var_dict['modelType']=='rhs':
                 var_dict['type'] = '{}, {}, resid={}, diff={}'.format(var_dict['modelType'] , var_dict['stateType'], var_dict['doResidual'], var_dict['diff'])
+                var_dict['contName'] = 'rhs w/ diff={}, costInt={}'.format( var_dict['diff'], var_dict['costIntegration'])
+            elif var_dict['modelType']=='Psi':
+                var_dict['contName'] = 'Psi'
             summary_df = summary_df.append(var_dict, ignore_index=True)
 
     # add epsilons
@@ -158,7 +166,7 @@ def run_summary(output_dir):
     metric_list = ['rmse_total', 't_valid_050', 't_valid_005', 'regularization_RF', 'rf_Win_bound', 'rf_bias_bound', 'differentiation_error']
 
     # subset summary
-    summary_df = summary_df[(summary_df.doResidual==0) & (summary_df.usef0==0)]
+    summary_df = summary_df[(summary_df.modelType!='Psi')]
 
     ## Solver-based summary
     for f0eps in summary_df.f0eps.unique():
@@ -168,8 +176,8 @@ def run_summary(output_dir):
                     plot_output_dir = os.path.join(output_dir, 'summary_plots_f0eps{f0eps}_tTrain{t}_rfdim{rfd}_dt{dt}'.format(f0eps=f0eps, t=t, rfd=rfd, dt=dt))
                     os.makedirs(plot_output_dir, exist_ok=True)
                     try:
-                        summarize(df=summary_df[(summary_df.stateType!='stateAndPred') & (summary_df.f0eps==f0eps) & (summary_df.tTrain==t) & (summary_df.rfDim==rfd) & (summary_df.dt==dt)], style='diff', hue='modelType', x="fidelity", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='solvers_{}')
-                        summarize(df=summary_df[(summary_df.f0eps==f0eps) & (summary_df.tTrain==t) & (summary_df.rfDim==rfd)  & (summary_df.dt==dt)], style='diff', hue='modelType', x="fidelity", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='solvers_all_{}')
+                        summarize(df=summary_df[(summary_df.stateType!='stateAndPred') & (summary_df.f0eps==f0eps) & (summary_df.tTrain==t) & (summary_df.rfDim==rfd) & (summary_df.dt==dt)], style='diff', hue='costIntegration', x="fidelity", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='solvers_{}')
+                        summarize(df=summary_df[(summary_df.f0eps==f0eps) & (summary_df.tTrain==t) & (summary_df.rfDim==rfd)  & (summary_df.dt==dt)], style='diff', hue='costIntegration', x="fidelity", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='solvers_all_{}')
                     except:
                         print('plot failed for:', plot_output_dir)
 
@@ -192,8 +200,8 @@ def run_summary(output_dir):
                 plot_output_dir = os.path.join(output_dir, 'summary_plots_f0eps{f0eps}_tTrain{t}_rfdim{rfd}'.format(f0eps=f0eps, t=t, rfd=rfd))
                 os.makedirs(plot_output_dir, exist_ok=True)
                 try:
-                    summarize(df=summary_df[(summary_df.stateType!='stateAndPred') & (summary_df.f0eps==f0eps) & (summary_df.tTrain==t) & (summary_df.rfDim==rfd) & (summary_df.fidelity=='hifi')], style='diff', hue='modelType', x="dt", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='dt_{}')
-                    summarize(df=summary_df[(summary_df.f0eps==f0eps) & (summary_df.tTrain==t) & (summary_df.rfDim==rfd) & (summary_df.fidelity=='hifi')], style='diff', hue='modelType', x="dt", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='dt_all_{}')
+                    summarize(df=summary_df[(summary_df.stateType!='stateAndPred') & (summary_df.f0eps==f0eps) & (summary_df.tTrain==t) & (summary_df.rfDim==rfd) & (summary_df.fidelity=='hifi')], style='diff', hue='costIntegration', x="dt", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='dt_{}')
+                    summarize(df=summary_df[(summary_df.f0eps==f0eps) & (summary_df.tTrain==t) & (summary_df.rfDim==rfd) & (summary_df.fidelity=='hifi')], style='diff', hue='costIntegration', x="dt", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='dt_all_{}')
                 except:
                     print('plot failed for:', plot_output_dir)
 
