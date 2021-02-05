@@ -29,6 +29,7 @@ def df_eval(df):
                 data['regularization_RF'] = model['regularization_RF']
                 data['rf_Win_bound'] = model['rf_Win_bound']
                 data['rf_bias_bound'] = model['rf_bias_bound']
+                data['differentiation_error'] = model['differentiation_error']
             except:
                 pass
             sub_df = pd.merge(df, data, on='eval_pickle_fname')
