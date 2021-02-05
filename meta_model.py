@@ -54,10 +54,8 @@ class IDK(object):
 		for key in params:
 			exec('self.{} = params["{}"]'.format(key, key))
 
-		if 'New' in self.modelType:
-			self.ZY = 'new'
-		elif 'Old' in self.modelType:
-			self.ZY = 'old'
+		# for now, ignore the fixed test dt and test at training data dt
+		self.dt_test = self.dt
 
 		self.scaler = scaler(tt=self.scaler_tt, tt_derivative=self.scaler_tt_derivatives, component_wise=self.component_wise)
 		self.fig_dir = os.path.join(self.saving_path, params["fig_dir"])
@@ -197,11 +195,11 @@ class IDK(object):
 		# get derivative
 		if self.diff == 'TrueDeriv': # use true derivative
 			self.xdot_vec = np.copy(self.xdot_vec_TRUE)
-		elif self.diff == 'InterpThenDiff': # do spline derivativer
+		elif self.diff == 'Spline': # do spline derivative
 			self.xdot_spline = [CubicSpline(x=t_vec, y=self.x_vec[:,k]).derivative() for k in range(self.input_dim)]
 			# get m(t) for all time JUST to have its statistics for normalization ahead of time
 			self.xdot_vec = np.array([self.xdot_spline[k](t_vec) for k in range(self.input_dim)]).T
-		elif self.diff == 'DiffThenInterp': # do spline derivativer
+		elif self.diff == 'Euler': # do euler derivative
 			self.xdot_vec = np.zeros(self.xdot_vec_TRUE.shape)
 			for k in range(len(t_vec)-1):
 				self.xdot_vec[k] = (self.x_vec[k+1] - self.x_vec[k]) / self.dt
@@ -219,19 +217,52 @@ class IDK(object):
 	def setup_the_learning(self):
 		tl = self.x_vec.shape[0] - self.dynamics_length
 
-		if 'continuous' in self.modelType:
-			## Random WEIGHTS
-			self.set_random_weights()
-			self.continuousInterpRF()
-		elif 'Euler' in self.modelType:
+		if 'rhs' in self.modelType:
+			if 'interp' in self.costIntegration:
+				## Random WEIGHTS
+				self.set_random_weights()
+				self.continuousInterpRF()
+			elif 'datagrid' in self.costIntegration:
+				if self.component_wise:
+					raise ValueError('component wise not yet set up for Euler')
+				x_input = np.copy(self.x_vec)
+				x_output = np.copy(self.xdot_vec)
+				x_input_descaled = self.scaler.descaleData(x_input)
+
+				if self.usef0:
+					predf0 = self.scaler.scaleXdot(np.array([self.f0(0, x_input_descaled[i]) for i in range(x_input.shape[0])]))
+				if self.rf_error_input:
+					rf_input = np.hstack((x_input, predf0))
+				else:
+					rf_input = x_input
+				if self.doResidual:
+					x_output -= predf0
+
+				if 'GP' in self.modelType:
+					GP_ker = ConstantKernel(1.0, (1e-5, 1e5)) * RBF(1.0, (1e-10, 1e+6)) + WhiteKernel(1.0, (1e-10, 1e6))
+					my_gpr = GaussianProcessRegressor(
+						kernel = GP_ker,
+						n_restarts_optimizer = 15,
+						alpha = 1e-10)
+					self.gpr = my_gpr.fit(X=rf_input, y=x_output)
+				else:
+					self.set_random_weights()
+					Q = np.array([self.q_t(rf_input[i]) for i in range(rf_input.shape[0])])
+					self.Z = Q.T @ Q / x_input.shape[0] # normalize by length
+					self.Y = Q.T @ x_output / x_input.shape[0]
+					self.reg_dim = self.Z.shape[0]
+					print('|Z| =', np.mean(self.Z**2))
+					print('|Y| =', np.mean(self.Y**2))
+
+		elif 'Psi' in self.modelType:
 			if self.component_wise:
-				raise ValueError('component wise not yet set up for Euler')
-			x_input = np.copy(self.x_vec)
-			x_output = np.copy(self.xdot_vec)
+				raise ValueError('component wise not yet set up for discrete')
+			x_output = np.copy(self.x_vec[1:])
+			x_input = np.copy(self.x_vec[:-1])
 			x_input_descaled = self.scaler.descaleData(x_input)
 
 			if self.usef0:
-				predf0 = self.scaler.scaleXdot(np.array([self.f0(0, x_input_descaled[i]) for i in range(x_input.shape[0])]))
+				predf0 = self.scaler.scaleData(np.array([self.psi0(x_input_descaled[i]) for i in range(x_input.shape[0])]), reuse=1)
 			if self.rf_error_input:
 				rf_input = np.hstack((x_input, predf0))
 			else:
@@ -254,38 +285,6 @@ class IDK(object):
 				self.reg_dim = self.Z.shape[0]
 				print('|Z| =', np.mean(self.Z**2))
 				print('|Y| =', np.mean(self.Y**2))
-
-		elif 'discrete' in self.modelType:
-			if self.component_wise:
-				raise ValueError('component wise not yet set up for discrete')
-			x_output = np.copy(self.x_vec[1:])
-			x_input = np.copy(self.x_vec[:-1])
-			x_input_descaled = self.scaler.descaleData(x_input)
-
-			if self.usef0:
-				predf0 = self.scaler.scaleData(np.array([self.psi0(x_input_descaled[i]) for i in range(x_input.shape[0])]), reuse=1)
-			if self.rf_error_input:
-				rf_input = np.hstack((x_input, predf0))
-			else:
-				rf_input = x_input
-			if self.doResidual:
-				x_output -= predf0
-
-			if self.modelType=='discrete':
-				self.set_random_weights()
-				Q = np.array([self.q_t(rf_input[i]) for i in range(rf_input.shape[0])])
-				self.Z = Q.T @ Q / x_input.shape[0] # normalize by length
-				self.Y = Q.T @ x_output / x_input.shape[0]
-				self.reg_dim = self.Z.shape[0]
-				print('|Z| =', np.mean(self.Z**2))
-				print('|Y| =', np.mean(self.Y**2))
-			elif self.modelType=='discreteGP':
-				GP_ker = ConstantKernel(1.0, (1e-5, 1e5)) * RBF(1.0, (1e-10, 1e+6)) + WhiteKernel(1.0, (1e-10, 1e6))
-				my_gpr = GaussianProcessRegressor(
-					kernel = GP_ker,
-					n_restarts_optimizer = 15,
-					alpha = 1e-10)
-				self.gpr = my_gpr.fit(X=rf_input, y=x_output)
 
 		# Store something useful for plotting
 		# self.first_train_vec = train_input_sequence[(self.dynamics_length+1),:]
@@ -372,7 +371,7 @@ class IDK(object):
 		return eval_dict
 
 	def make_predictions(self, ic, t_end):
-		if 'discrete' in self.modelType or self.f0only:
+		if 'Psi' in self.modelType or self.f0only:
 			prediction = []
 			prediction.append(ic)
 			n_steps = int(t_end / self.dt_test)
@@ -382,11 +381,7 @@ class IDK(object):
 					ic = self.predict_next(x_input=ic)
 				prediction.append(ic)
 			prediction = np.array(prediction)
-		elif ('continuous' in self.modelType) or ('Euler' in self.modelType):
-			# if 'Euler' in self.modelType:
-			# 	self.solver_settings['method'] = 'Euler'
-			# 	self.solver_settings['dt'] = self.dt
-
+		elif 'rhs' in self.modelType:
 			N = int(t_end / self.dt_test) + 1
 			t_eval = self.dt_test*np.arange(N)
 			t_span = [t_eval[0], t_eval[-1]]
@@ -402,7 +397,7 @@ class IDK(object):
 
 	def predict_next(self, x_input, t0=0):
 		u_next = np.zeros(self.input_dim)
-		if 'discrete' in self.modelType:
+		if 'Psi' in self.modelType:
 			if self.doResidual or self.usef0:
 				pred = self.scaler.scaleData(self.psi0(self.scaler.descaleData(x_input)), reuse=1)
 			else:
@@ -415,7 +410,7 @@ class IDK(object):
 				u_next = pred + self.gpr.predict(rf_input)
 			else:
 				u_next = pred + self.W_out_markov @ self.q_t(rf_input)
-		elif 'continuous' in self.modelType:
+		elif 'rhs' in self.modelType:
 			t_span = [t0, t0+self.dt]
 			t_eval = np.array([t0+self.dt])
 			u_next = my_solve_ivp(ic=x_input, f_rhs=self.rhs, t_span=t_span, t_eval=t_eval, settings=self.solver_settings)
@@ -524,11 +519,11 @@ class IDK(object):
 	def xdot_t(self, t):
 		'''differentiate self.x_vec at time t using stored component-wise spline interpolant'''
 
-		if self.diff =='DiffThenInterp':
+		if self.diff =='Euler':
 			xdot = linear_interp(x_vec=self.xdot_vec, n_min=self.n_min, t=t, t0=0, dt=self.dt)
 		elif self.diff=='TrueDeriv':
 			xdot = self.scaler.scaleXdot(self.fTRUE(t=t, y=self.scaler.descaleData(self.x_t(t=t))))
-		elif self.diff=='InterpThenDiff':
+		elif self.diff=='Spline':
 			xdot = np.zeros(self.input_dim)
 			for k in range(self.input_dim):
 				xdot[k] = self.xdot_spline[k](t)
@@ -603,39 +598,36 @@ class IDK(object):
 		T_warmup = 0
 		T_train = self.tTrain
 		t_span = [T_warmup, T_warmup + T_train]
-		t_eval = np.array([t_span[-1]])
-		y0 = np.zeros(self.rf_dim**2 + self.rf_dim*self.input_dim)
 
 		if self.component_wise:
 			self.Y = []
 			self.Z = []
 			for k in range(self.input_dim):
 				# allocate, reshape, normalize, and save solutions
-				print('Compute final Y,Z component...')
-				if self.ZY=='new':
-					self.newMethod_getYZ_quad(t_span=t_span, k=k)
-				else:
-					print('Integrating over training data...')
-					timer_start = time.time()
-					ysol = my_solve_ivp(f_rhs=lambda t, y: self.rcrf_rhs(t, y, k=k), t_span=t_span, t_eval=t_eval, ic=y0[k], settings=self.solver_settings)
-					print('...took {:2.2f} minutes'.format((time.time() - timer_start)/60))
-					self.newMethod_saveYZ(yend=ysol.T, T_train=T_train)
+				self.getYZ(t_span=t_span, k=k)
 			self.Y = np.vstack(self.Y)
 			self.Z = np.vstack(self.Z)
 		else:
 			# allocate, reshape, normalize, and save solutions
-			print('Computing final Y,Z...')
-			if self.ZY=='new':
-				print('Integrating Z, Y with quadrature')
-				timer_start = time.time()
-				self.newMethod_getYZ_quad(t_span=t_span)
-				print('...took {:2.2f} minutes'.format((time.time() - timer_start)/60))
-			else:
-				print('Integrating Z, Y with ODE solver')
-				timer_start = time.time()
-				ysol = my_solve_ivp(f_rhs=self.rcrf_rhs, t_span=t_span, t_eval=t_eval, ic=y0, settings=self.solver_settings)
-				print('...took {:2.2f} minutes'.format((time.time() - timer_start)/60))
-				self.newMethod_saveYZ(yend=ysol.T, T_train=T_train)
+			self.getYZ(t_span=t_span)
+
+	def getYZ(self, t_span, k=None):
+		timer_start = time.time()
+		if self.component_wise:
+			y0 = np.zeros(self.rf_dim**2 + self.rf_dim)
+		else:
+			y0 = np.zeros(self.rf_dim**2 + self.rf_dim*self.input_dim)
+
+		t_eval = np.array([t_span[-1]])
+		if self.costIntegrator=='quadvec':
+			print('Starting ZY integration with quad_vec...')
+			self.newMethod_getYZ_quad(t_span=t_span, k=k)
+		else:
+			print('Starting ZY integration with solve_ivp...')
+			ysol = my_solve_ivp(f_rhs=lambda t, y: self.rcrf_rhs(t, y, k=k), t_span=t_span, t_eval=t_eval, ic=y0, settings=self.solver_settings)
+			self.newMethod_saveYZ(yend=ysol.T, T_train=T_train)
+		print('...took {:2.2f} minutes'.format((time.time() - timer_start)/60))
+
 
 	def newMethod_getYZ_quad(self, t_span, k=None):
 		T = t_span[-1] - t_span[0]

@@ -16,5 +16,6 @@
   "fig_dir": "Figures",
   "logfile_dir": "Logfiles",
   "rng_seed": 0,
-  "quad_limit_factor": 0.01
+  "quad_limit_factor": 0.01,
+  "costIntegrator": "RK"
 }
