@@ -77,8 +77,8 @@ def declare_jobs(data_pathname, datagen_settings, output_dir, master_job_file, c
                         'input_dim': 3,
                         't_test': 20}
 
-    ## HYBRID PHYSICS RUNS in continuous-time
-    combined_settings = { 'modelType': ['rhs', 'Psi'],
+    ## rhs runs
+    combined_settings = { 'modelType': ['rhs'],
                  'diff': ['TrueDeriv','Euler', 'Spline'],
                  'costIntegration': ['datagrid', 'interp'],
                  'tTrain': [100],
@@ -90,6 +90,17 @@ def declare_jobs(data_pathname, datagen_settings, output_dir, master_job_file, c
                  'trainNumber': [i for i in range(datagen_settings['n_train_traj'])]
                 }
     all_job_fnames += queue_joblist(combined_settings=combined_settings, shared_settings=shared_settings, output_dir=output_dir, master_job_file=master_job_file, cmd=cmd_py, conda_env=conda_env, hours=hours)
+
+    combined_settings['modelType'] = 'Psi'
+    combined_settings['diff'] = 'NA'
+    combined_settings['costIntegration'] = 'NA'
+    all_job_fnames += queue_joblist(combined_settings=combined_settings, shared_settings=shared_settings, output_dir=output_dir, master_job_file=master_job_file, cmd=cmd_py, conda_env=conda_env, hours=hours)
+
+    combined_settings['modelType'] = 'f0only'
+    combined_settings['diff'] = 'TrueDeriv'
+    combined_settings['costIntegration'] = 'NA'
+    all_job_fnames += queue_joblist(combined_settings=combined_settings, shared_settings=shared_settings, output_dir=output_dir, master_job_file=master_job_file, cmd=cmd_py, conda_env=conda_env, hours=hours)
+
 
     return all_job_fnames, combined_settings
 
