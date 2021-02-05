@@ -371,7 +371,7 @@ class IDK(object):
 		return eval_dict
 
 	def make_predictions(self, ic, t_end):
-		if 'Psi' in self.modelType or self.f0only:
+		if 'Psi' in self.modelType:
 			prediction = []
 			prediction.append(ic)
 			n_steps = int(t_end / self.dt_test)
@@ -381,7 +381,7 @@ class IDK(object):
 					ic = self.predict_next(x_input=ic)
 				prediction.append(ic)
 			prediction = np.array(prediction)
-		elif 'rhs' in self.modelType:
+		elif 'rhs' in self.modelType or self.f0only:
 			N = int(t_end / self.dt_test) + 1
 			t_eval = self.dt_test*np.arange(N)
 			t_span = [t_eval[0], t_eval[-1]]
@@ -428,6 +428,8 @@ class IDK(object):
 		# add mechanistic rhs
 		if self.usef0:
 			f0 = self.scaler.scaleXdot(self.f0(t0, self.scaler.descaleData(x_input)))
+			if self.modelType=='f0only':
+				return f0
 
 		f_error_markov = np.zeros(self.input_dim)
 		if self.component_wise:
