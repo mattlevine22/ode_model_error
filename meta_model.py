@@ -361,7 +361,7 @@ class IDK(object):
 
 		# add hyperparameters to test_eval.pickle output
 		try:
-			for my_varnm in ["regularization_RF", "rf_Win_bound", "rf_bias_bound"]:
+			for my_varnm in ["regularization_RF", "rf_Win_bound", "rf_bias_bound", "differentiation_error"]:
 				exec("val = self.{varnm}".format(varnm=my_varnm))
 				eval_dict[my_varnm] = val
 		except:
