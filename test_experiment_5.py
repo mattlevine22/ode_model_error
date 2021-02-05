@@ -178,7 +178,7 @@ def run_summary(output_dir):
     metric_list = ['rmse_total', 't_valid_050', 't_valid_005', 'regularization_RF', 'rf_Win_bound', 'rf_bias_bound', 'differentiation_error']
 
     # subset summary
-    summary_df = summary_df[(summary_df.modelType!='Psi')]
+    # summary_df = summary_df[(summary_df.modelType!='Psi')]
 
     ## Solver-based summary
     for f0eps in summary_df.f0eps.unique():
