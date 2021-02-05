@@ -625,6 +625,7 @@ class IDK(object):
 		else:
 			print('Starting ZY integration with solve_ivp...')
 			ysol = my_solve_ivp(f_rhs=lambda t, y: self.rcrf_rhs(t, y, k=k), t_span=t_span, t_eval=t_eval, ic=y0, settings=self.solver_settings)
+			T_train = t_span[-1] - t_span[0]
 			self.newMethod_saveYZ(yend=ysol.T, T_train=T_train)
 		print('...took {:2.2f} minutes'.format((time.time() - timer_start)/60))
 
