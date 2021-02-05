@@ -19,13 +19,19 @@ def main():
     # if the model has already been trained, load it.
     # else, train it
     new_run = 1
-    try:
-        model.loadModel()
-        new_run = 0
-    except:
+    if model.retrain:
         print('Begin training!')
         model.train()
         model.loadModel() # need to do this because last validation run needs to be cleared
+    else:
+        try:
+            model.loadModel()
+            print('Skip training!')
+            new_run = 0
+        except:
+            print('Begin training!')
+            model.train()
+            model.loadModel() # need to do this because last validation run needs to be cleared
 
     # test the saved model
     if new_run or model.retest:
