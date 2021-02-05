@@ -139,7 +139,6 @@ class IDK(object):
 		self.setup_timeseries()
 
 		# Do a hyperparameter optimization using a validation step
-		self.set_fidelity('medfi')
 		if self.validate_hyperparameters:
 			# switch to lowfi quadrature for cheap validation runs
 			self.set_fidelity('lowfi')
@@ -162,7 +161,7 @@ class IDK(object):
 			# re-setup things with optimal parameters (new realization using preferred hyperparams)
 			self.set_BO_keyval(best_param_dict)
 			# return to hifi quadrature for final solve
-			self.set_fidelity('medfi')
+			self.set_fidelity('hifi')
 			self.setup_the_learning()
 
 			# now fix the optimal W,b and the learned Y,Z... just learn the optimal regularization for the inversion
@@ -181,8 +180,9 @@ class IDK(object):
 			best_quality = optimizer.max['target']
 			print("Optimal parameters:", best_param_dict, '(quality = {})'.format(best_quality))
 			self.set_BO_keyval(best_param_dict)
-			self.set_fidelity('medfi')
+			self.set_fidelity('hifi')
 		else:
+			self.set_fidelity('hifi')
 			self.setup_the_learning()
 
 		# solve for the final Y,Z, regI and save
@@ -603,9 +603,8 @@ class IDK(object):
 		T_warmup = 0
 		T_train = self.tTrain
 		t_span = [T_warmup, T_warmup + T_train]
-		step = self.dt/10
 		t_eval = np.array([t_span[-1]])
-		y0 = self.newMethod_getIC(T_warmup=T_warmup)
+		y0 = np.zeros(self.rf_dim**2 + self.rf_dim*self.input_dim)
 
 		if self.component_wise:
 			self.Y = []
@@ -694,45 +693,6 @@ class IDK(object):
 			res = (self.Z + regI) @ W_out_all.T - self.Y
 			mse = np.mean(res**2)
 			print('Inversion MSE for lambda_RF={lrf} is {mse} with normalized |Wout|={nrm}'.format(lrf=self.regularization_RF, mse=mse, nrm=np.mean(W_out_all**2)))
-
-	def newMethod_getIC(self, T_warmup):
-		# generate ICs for training integration
-		yall = []
-
-		if self.ZY=='old':
-			x0 = self.x_t(t=T_warmup)
-			xdot0 = self.xdot_t(t=T_warmup)
-			m0 = self.mscaled(t=T_warmup, x=x0, xdot=xdot0)
-			if self.rf_error_input:
-				f0 = self.scaler.scaleXdot(self.f0(T_warmup, self.scaler.descaleData(x0)))
-			if self.component_wise:
-				for k in range(self.input_dim):
-					x0k = x0[k,None]
-					m0k = m0[k,None]
-					if self.rf_error_input:
-						f0k = f0[k,None]
-						rf_input = np.hstack((x0k,f0k))
-					else:
-						rf_input = x0k
-					q0k = self.q_t(rf_input)
-					Zqq0 = np.outer(q0k, q0k).reshape(-1)
-					Yq0 = np.outer(q0k, m0k).reshape(-1)
-					y0 = np.hstack( (Zqq0, Yq0) )
-					yall.append(y0)
-			else:
-				if self.rf_error_input:
-					rf_input = np.hstack((x0,f0))
-				else:
-					rf_input = x0
-				q0 = self.q_t(rf_input)
-				Zqq0 = np.outer(q0, q0).reshape(-1)
-				Yq0 = np.outer(q0, m0).reshape(-1)
-				yall = np.hstack( (Zqq0, Yq0) )
-
-		yall = np.array(yall)
-
-		return yall
-
 
 	def saveModel(self):
 		# print("Recording time...")
