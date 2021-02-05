@@ -614,9 +614,9 @@ class IDK(object):
 	def getYZ(self, t_span, k=None):
 		timer_start = time.time()
 		if self.component_wise:
-			y0 = np.zeros(self.rf_dim**2 + self.rf_dim)
+			y0 = np.zeros(self.rfDim**2 + self.rfDim)
 		else:
-			y0 = np.zeros(self.rf_dim**2 + self.rf_dim*self.input_dim)
+			y0 = np.zeros(self.rfDim**2 + self.rfDim*self.input_dim)
 
 		t_eval = np.array([t_span[-1]])
 		if self.costIntegrator=='quadvec':
