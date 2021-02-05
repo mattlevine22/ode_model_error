@@ -204,15 +204,16 @@ def run_summary(output_dir):
             #     print('plot failed for:', plot_output_dir)
     #
     ## DeltaT-based summary
-    for f0eps in summary_df.f0eps.unique():
-        for t in summary_df.tTrain.unique():
-            plot_output_dir = os.path.join(output_dir, 'summary_plots_f0eps{f0eps}_tTrain{t}'.format(f0eps=f0eps, t=t))
-            os.makedirs(plot_output_dir, exist_ok=True)
-            try:
-                summarize(df=summary_df[(summary_df.stateType!='stateAndPred') & (summary_df.f0eps==f0eps) & (summary_df.tTrain==t) & (summary_df.fidelity=='hifi')], style='diff', hue='costIntegration', x="dt", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='dt_{}')
-                summarize(df=summary_df[(summary_df.f0eps==f0eps) & (summary_df.tTrain==t) & (summary_df.fidelity=='hifi')], style='diff', hue='costIntegration', x="dt", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='dt_all_{}')
-            except:
-                print('plot failed for:', plot_output_dir)
+    for fid in summary_df.fidelity.unique():
+        for f0eps in summary_df.f0eps.unique():
+            for t in summary_df.tTrain.unique():
+                plot_output_dir = os.path.join(output_dir, 'summary_plots_f0eps{f0eps}_tTrain{t}_fid{fid}'.format(f0eps=f0eps, t=t, fid=fid))
+                os.makedirs(plot_output_dir, exist_ok=True)
+                try:
+                    summarize(df=summary_df[(summary_df.stateType!='stateAndPred') & (summary_df.f0eps==f0eps) & (summary_df.tTrain==t) & (summary_df.fidelity==fid)], style='diff', hue='costIntegration', x="dt", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='dt_{}')
+                    summarize(df=summary_df[(summary_df.f0eps==f0eps) & (summary_df.tTrain==t) & (summary_df.fidelity==fid)], style='diff', hue='costIntegration', x="dt", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='dt_all_{}')
+                except:
+                    print('plot failed for:', plot_output_dir)
 
 if __name__ == '__main__':
     # if FLAGS.mode=='all':
