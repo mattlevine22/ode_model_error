@@ -220,6 +220,44 @@ def run_summary(output_dir):
     for f0eps in summary_df.f0eps.unique():
         for t in summary_df.tTrain.unique():
             for dt in summary_df.dt.unique():
+                plot_output_dir = os.path.join(output_dir, 'summary_plotsALL_f0eps{f0eps}_tTrain{t}_dt{dt}'.format(f0eps=f0eps, t=t, dt=dt))
+                os.makedirs(plot_output_dir, exist_ok=True)
+                try:
+                    summarize(df=summary_df[(summary_df.stateType!='stateAndPred') & (summary_df.f0eps==f0eps) & (summary_df.tTrain==t) & (summary_df.dt==dt)], style='type', hue='rhsname', x="fidelity", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='solvers_{}')
+                    summarize(df=summary_df[(summary_df.f0eps==f0eps) & (summary_df.tTrain==t)  & (summary_df.dt==dt)], style='type', hue='rhsname', x="fidelity", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='solvers_all_{}')
+                except:
+                    print('plot failed for:', plot_output_dir)
+
+    ## Epsilon-based summary
+    for fid in summary_df.fidelity.unique():
+        for dt in summary_df.dt.unique():
+            for t in summary_df.tTrain.unique():
+                plot_output_dir = os.path.join(output_dir, 'summary_plotsALL_dt{dt}_tTrain{t}_fid{fid}'.format(dt=dt, t=t, fid=fid))
+                os.makedirs(plot_output_dir, exist_ok=True)
+                try:
+                    summarize(df=summary_df[(summary_df.stateType!='stateAndPred') & (summary_df.dt==dt) & (summary_df.tTrain==t) & (summary_df.fidelity==fid)], style='type', hue='rhsname', x="f0eps", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='eps_{}')
+                    summarize(df=summary_df[(summary_df.dt==dt) & (summary_df.tTrain==t) & (summary_df.fidelity==fid)], style='type', hue='rhsname', x="f0eps", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='eps_all_{}')
+                except:
+                    print('plot failed for:', plot_output_dir)
+    #
+    ## DeltaT-based summary
+    for fid in summary_df.fidelity.unique():
+        for f0eps in summary_df.f0eps.unique():
+            for t in summary_df.tTrain.unique():
+                plot_output_dir = os.path.join(output_dir, 'summary_plotsALL_f0eps{f0eps}_tTrain{t}_fid{fid}'.format(f0eps=f0eps, t=t, fid=fid))
+                os.makedirs(plot_output_dir, exist_ok=True)
+                try:
+                    summarize(df=summary_df[(summary_df.stateType!='stateAndPred') & (summary_df.f0eps==f0eps) & (summary_df.tTrain==t) & (summary_df.fidelity==fid)], style='type', hue='rhsname', x="dt", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='dt_{}')
+                    summarize(df=summary_df[(summary_df.f0eps==f0eps) & (summary_df.tTrain==t) & (summary_df.fidelity==fid)], style='type', hue='rhsname', x="dt", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='dt_all_{}')
+                except:
+                    print('plot failed for:', plot_output_dir)
+
+
+
+    ## Solver-based summary
+    for f0eps in summary_df.f0eps.unique():
+        for t in summary_df.tTrain.unique():
+            for dt in summary_df.dt.unique():
                 plot_output_dir = os.path.join(output_dir, 'summary_plots_f0eps{f0eps}_tTrain{t}_dt{dt}'.format(f0eps=f0eps, t=t, dt=dt))
                 os.makedirs(plot_output_dir, exist_ok=True)
                 try:
