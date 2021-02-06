@@ -85,19 +85,53 @@ def declare_jobs(data_pathname, datagen_settings, output_dir, master_job_file, c
                  'usef0': [0],
                  'doResidual': [0],
                  'stateType': ['state'],
-                 'dt': [0.0001, 0.0002, 0.001, 0.0005, 0.005, 0.01, 0.05],
+                 'dt': [0.0001, 0.001, 0.01, 0.05, 0.1],
                  'f0eps': [0],
                  'trainNumber': [i for i in range(datagen_settings['n_train_traj'])]
                 }
     all_job_fnames += queue_joblist(combined_settings=combined_settings, shared_settings=shared_settings, output_dir=output_dir, master_job_file=master_job_file, cmd=cmd_py, conda_env=conda_env, hours=hours)
 
+    # hybrid rhs runs
+    combined_settings['usef0'] = [1]
+    combined_settings['f0eps'] = [0.001, 0.05]
+
+    combined_settings['doResidual'] = [1]
+    combined_settings['stateType'] = ['state']
+    all_job_fnames += queue_joblist(combined_settings=combined_settings, shared_settings=shared_settings, output_dir=output_dir, master_job_file=master_job_file, cmd=cmd_py, conda_env=conda_env, hours=hours)
+
+    combined_settings['doResidual'] = [0]
+    combined_settings['stateType'] = ['stateAndPred']
+    all_job_fnames += queue_joblist(combined_settings=combined_settings, shared_settings=shared_settings, output_dir=output_dir, master_job_file=master_job_file, cmd=cmd_py, conda_env=conda_env, hours=hours)
+
+    ## discrete runs
     combined_settings['modelType'] = ['Psi']
     combined_settings['diff'] = ['NA']
     combined_settings['costIntegration'] = ['Psi']
+
+    # hybrid discrete runs
+    combined_settings['usef0'] = [1]
+    combined_settings['f0eps'] = [0.001, 0.05]
+
+    combined_settings['doResidual'] = [1]
+    combined_settings['stateType'] = ['state']
     all_job_fnames += queue_joblist(combined_settings=combined_settings, shared_settings=shared_settings, output_dir=output_dir, master_job_file=master_job_file, cmd=cmd_py, conda_env=conda_env, hours=hours)
 
-    combined_settings['modelType'] = ['f0only']
+    combined_settings['doResidual'] = [0]
+    combined_settings['stateType'] = ['stateAndPred']
+    all_job_fnames += queue_joblist(combined_settings=combined_settings, shared_settings=shared_settings, output_dir=output_dir, master_job_file=master_job_file, cmd=cmd_py, conda_env=conda_env, hours=hours)
+
+
+    # data-only discrete runs
+    combined_settings['usef0'] = [0]
+    combined_settings['f0eps'] = [0]
+    combined_settings['doResidual'] = [0]
+    combined_settings['stateType'] = ['state']
+    all_job_fnames += queue_joblist(combined_settings=combined_settings, shared_settings=shared_settings, output_dir=output_dir, master_job_file=master_job_file, cmd=cmd_py, conda_env=conda_env, hours=hours)
+
+    # true-model run
     combined_settings['usef0'] = [1]
+    combined_settings['f0eps'] = [0]
+    combined_settings['modelType'] = ['f0only']
     combined_settings['diff'] = ['TrueDeriv']
     combined_settings['costIntegration'] = ['fonly']
     all_job_fnames += queue_joblist(combined_settings=combined_settings, shared_settings=shared_settings, output_dir=output_dir, master_job_file=master_job_file, cmd=cmd_py, conda_env=conda_env, hours=hours)
@@ -133,12 +167,13 @@ def init_summary_df(combined_settings, all_job_fnames):
         var_dict['model_fname'] = os.path.join(job_dir, 'Trained_Models/data.pickle')
         if var_dict['modelType']=='f0only':
             var_dict['type'] = 'f0only'
-            var_dict['contName'] = 'f0only'
+            var_dict['rhsname'] = 'f0only'
         elif var_dict['modelType']=='rhs':
-            var_dict['type'] = '{}, {}, resid={}, diff={}'.format(var_dict['modelType'] , var_dict['stateType'], var_dict['doResidual'], var_dict['diff'])
-            var_dict['contName'] = 'rhs w/ diff={}, costInt={}'.format( var_dict['diff'], var_dict['costIntegration'])
+            var_dict['type'] = 'resid={}, {}'.format(var_dict['doResidual'], var_dict['stateType'])
+            var_dict['rhsname'] = 'rhs w/ diff={}, costInt={}'.format( var_dict['diff'], var_dict['costIntegration'])
         elif var_dict['modelType']=='Psi':
-            var_dict['contName'] = 'Psi'
+            var_dict['type'] = 'resid={}, {}'.format(var_dict['doResidual'], var_dict['stateType'])
+            var_dict['rhsname'] = 'Psi'
 
         # default test_eval.pickle is hifi
         var_dict['fidelity'] = 'hifi'
@@ -151,12 +186,13 @@ def init_summary_df(combined_settings, all_job_fnames):
             var_dict['model_fname'] = os.path.join(job_dir, 'Trained_Models/data.pickle')
             if var_dict['modelType']=='f0only':
                 var_dict['type'] = 'f0only'
-                var_dict['contName'] = 'f0only'
+                var_dict['rhsname'] = 'f0only'
             elif var_dict['modelType']=='rhs':
-                var_dict['type'] = '{}, {}, resid={}, diff={}'.format(var_dict['modelType'] , var_dict['stateType'], var_dict['doResidual'], var_dict['diff'])
-                var_dict['contName'] = 'rhs w/ diff={}, costInt={}'.format( var_dict['diff'], var_dict['costIntegration'])
+                var_dict['type'] = 'resid={}, {}'.format(var_dict['doResidual'], var_dict['stateType'])
+                var_dict['rhsname'] = 'rhs w/ diff={}, costInt={}'.format( var_dict['diff'], var_dict['costIntegration'])
             elif var_dict['modelType']=='Psi':
-                var_dict['contName'] = 'Psi'
+                var_dict['type'] = 'resid={}, {}'.format(var_dict['doResidual'], var_dict['stateType'])
+                var_dict['rhsname'] = 'Psi'
             summary_df = summary_df.append(var_dict, ignore_index=True)
 
     # add epsilons
@@ -192,16 +228,17 @@ def run_summary(output_dir):
                 except:
                     print('plot failed for:', plot_output_dir)
 
-    # ## Epsilon-based summary
-#     for dt in summary_df.dt.unique():
-#         for t in summary_df.tTrain.unique():
-            # plot_output_dir = os.path.join(output_dir, 'summary_plots_dt{dt}_tTrain{t}'.format(dt=dt, t=t))
-            # os.makedirs(plot_output_dir, exist_ok=True)
-            # try:
-            #     summarize(df=summary_df[(summary_df.stateType!='stateAndPred') & (summary_df.dt==dt) & (summary_df.tTrain==t) & (summary_df.fidelity=='hifi')], style='diff', hue='modelType', x="f0eps", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='eps_{}')
-            #     summarize(df=summary_df[(summary_df.dt==dt) & (summary_df.tTrain==t) & (summary_df.fidelity=='hifi')], style='diff', hue='modelType', x="f0eps", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='eps_all_{}')
-            # except:
-            #     print('plot failed for:', plot_output_dir)
+    ## Epsilon-based summary
+    for fid in summary_df.fidelity.unique():
+    for dt in summary_df.dt.unique():
+        for t in summary_df.tTrain.unique():
+            plot_output_dir = os.path.join(output_dir, 'summary_plots_dt{dt}_tTrain{t}_fid{fid}'.format(dt=dt, t=t, fid=fid))
+            os.makedirs(plot_output_dir, exist_ok=True)
+            try:
+                summarize(df=summary_df[(summary_df.stateType!='stateAndPred') & (summary_df.dt==dt) & (summary_df.tTrain==t) & (summary_df.fidelity==fid)], style='diff', hue='costIntegration', x="f0eps", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='eps_{}')
+                summarize(df=summary_df[(summary_df.dt==dt) & (summary_df.tTrain==t) & (summary_df.fidelity==fid)], style='diff', hue='costIntegration', x="f0eps", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='eps_all_{}')
+            except:
+                print('plot failed for:', plot_output_dir)
     #
     ## DeltaT-based summary
     for fid in summary_df.fidelity.unique():
