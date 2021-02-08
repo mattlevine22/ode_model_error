@@ -215,8 +215,7 @@ def run_summary(output_dir):
 
     # subset summary
     # summary_df = summary_df[(summary_df.modelType!='Psi')]
-    pdb.set_trace()
-    summary_df.differentiation_error = 1*summary_df.differentiation_error
+    summary_df.differentiation_error = summary_df.differentiation_error.astype(float)
 
     ## build a custom, legible epsilon plot
     # TrueDeriv-DataGrid (rhs idealized)
@@ -229,7 +228,6 @@ def run_summary(output_dir):
             for t in summary_df.tTrain.unique():
                 plot_output_dir = os.path.join(output_dir, 'summary_epsilon_plotsLEGIBLE_dt{dt}_tTrain{t}_fid{fid}'.format(dt=dt, t=t, fid=fid))
                 os.makedirs(plot_output_dir, exist_ok=True)
-                pdb.set_trace()
                 try:
                     summarize(df=summary_df[(summary_df.stateType!='stateAndPred') & (summary_df.dt==dt) & (summary_df.tTrain==t) & (summary_df.fidelity==fid) & summary_df.rhsname.isin(rhsname_list)], style='type', hue='rhsname', x="f0eps", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='eps_{}')
                 except:

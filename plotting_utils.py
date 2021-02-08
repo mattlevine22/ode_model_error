@@ -37,7 +37,6 @@ def summarize(df, hue, style, output_dir, metric_list, x="f0eps", fname_shape='s
             plt.close()
         except:
             print('Failed at', metric)
-            pdb.set_trace()
             pass
 
 def plotMatrixSpectrum(model, A, mat_name):
