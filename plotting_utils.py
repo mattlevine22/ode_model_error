@@ -34,10 +34,10 @@ def summarize(df, hue, style, output_dir, metric_list, x="f0eps", fname_shape='s
             plt.savefig(fig_path)
             ax.set_yscale('log')
             plt.savefig(fig_path + '_log')
-            plt.close()
         except:
             print('Failed at', metric)
             pass
+        plt.close()
 
 def plotMatrixSpectrum(model, A, mat_name):
     fig_path = os.path.join(model.fig_dir, "singular_values_{:}.png".format(mat_name))
