@@ -76,6 +76,9 @@ def declare_jobs(data_pathname, datagen_settings, output_dir, master_job_file, c
                         'input_dim': 3,
                         't_test': 20}
 
+    f0eps_list = [0.001, 0.05, 0.1, 0.2, 0.5, 1, 2]
+    dt_list = [0.0001, 0.001, 0.01, 0.05, 0.1, 0.2]
+
     ## rhs runs
     combined_settings = { 'modelType': ['rhs'],
                  'diff': ['TrueDeriv','Euler', 'Spline'],
@@ -84,7 +87,7 @@ def declare_jobs(data_pathname, datagen_settings, output_dir, master_job_file, c
                  'usef0': [0],
                  'doResidual': [0],
                  'stateType': ['state'],
-                 'dt': [0.0001, 0.001, 0.01, 0.05, 0.1],
+                 'dt': dt_list,
                  'f0eps': [0],
                  'trainNumber': [i for i in range(datagen_settings['n_train_traj'])]
                 }
@@ -92,7 +95,7 @@ def declare_jobs(data_pathname, datagen_settings, output_dir, master_job_file, c
 
     # hybrid rhs runs
     combined_settings['usef0'] = [1]
-    combined_settings['f0eps'] = [0.001, 0.05]
+    combined_settings['f0eps'] = f0eps_list
 
     combined_settings['doResidual'] = [1]
     combined_settings['stateType'] = ['state']
@@ -109,7 +112,7 @@ def declare_jobs(data_pathname, datagen_settings, output_dir, master_job_file, c
 
     # hybrid discrete runs
     combined_settings['usef0'] = [1]
-    combined_settings['f0eps'] = [0.001, 0.05]
+    combined_settings['f0eps'] = f0eps_list
 
     combined_settings['doResidual'] = [1]
     combined_settings['stateType'] = ['state']
@@ -129,10 +132,18 @@ def declare_jobs(data_pathname, datagen_settings, output_dir, master_job_file, c
 
     # true-model run
     combined_settings['usef0'] = [1]
-    combined_settings['f0eps'] = [0, 0.001, 0.05]
+    combined_settings['f0eps'] = [0]
     combined_settings['modelType'] = ['f0only']
     combined_settings['diff'] = ['TrueDeriv']
     combined_settings['costIntegration'] = ['fonly']
+    all_job_fnames += queue_joblist(combined_settings=combined_settings, shared_settings=shared_settings, output_dir=output_dir, master_job_file=master_job_file, cmd=cmd_py, conda_env=conda_env, hours=hours)
+
+    # bad-model runs
+    combined_settings['usef0'] = [1]
+    combined_settings['f0eps'] = f0eps_list
+    combined_settings['modelType'] = ['f0only']
+    combined_settings['diff'] = ['NA']
+    combined_settings['costIntegration'] = ['f0only']
     all_job_fnames += queue_joblist(combined_settings=combined_settings, shared_settings=shared_settings, output_dir=output_dir, master_job_file=master_job_file, cmd=cmd_py, conda_env=conda_env, hours=hours)
 
 
@@ -244,6 +255,7 @@ def run_summary(output_dir):
                 os.makedirs(plot_output_dir, exist_ok=True)
                 try:
                     summarize(df=summary_df[(summary_df.stateType!='stateAndPred') & (summary_df.f0eps==f0eps) & (summary_df.tTrain==t) & (summary_df.dt==dt)], style='type', hue='rhsname', x="fidelity", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='solvers_{}')
+                    summarize(df=summary_df[(summary_df.stateType!='stateAndPred') & (summary_df.f0eps==f0eps) & (summary_df.tTrain==t) & (summary_df.dt==dt) & summary_df.rhsname.isin(rhsname_list)], style='type', hue='rhsname', x="fidelity", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='solvers_legible_{}')
                     summarize(df=summary_df[(summary_df.f0eps==f0eps) & (summary_df.tTrain==t)  & (summary_df.dt==dt)], style='type', hue='rhsname', x="fidelity", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='solvers_all_{}')
                 except:
                     print('plot failed for:', plot_output_dir)
@@ -256,6 +268,7 @@ def run_summary(output_dir):
                 os.makedirs(plot_output_dir, exist_ok=True)
                 try:
                     summarize(df=summary_df[(summary_df.stateType!='stateAndPred') & (summary_df.dt==dt) & (summary_df.tTrain==t) & (summary_df.fidelity==fid)], style='type', hue='rhsname', x="f0eps", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='eps_{}')
+                    summarize(df=summary_df[(summary_df.stateType!='stateAndPred') & (summary_df.dt==dt) & (summary_df.tTrain==t) & (summary_df.fidelity==fid) & summary_df.rhsname.isin(rhsname_list)], style='type', hue='rhsname', x="f0eps", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='eps_legible_{}')
                     summarize(df=summary_df[(summary_df.dt==dt) & (summary_df.tTrain==t) & (summary_df.fidelity==fid)], style='type', hue='rhsname', x="f0eps", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='eps_all_{}')
                 except:
                     print('plot failed for:', plot_output_dir)
@@ -268,6 +281,7 @@ def run_summary(output_dir):
                 os.makedirs(plot_output_dir, exist_ok=True)
                 try:
                     summarize(df=summary_df[(summary_df.stateType!='stateAndPred') & (summary_df.f0eps==f0eps) & (summary_df.tTrain==t) & (summary_df.fidelity==fid)], style='type', hue='rhsname', x="dt", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='dt_{}')
+                    summarize(df=summary_df[(summary_df.stateType!='stateAndPred') & (summary_df.f0eps==f0eps) & (summary_df.tTrain==t) & (summary_df.fidelity==fid) & summary_df.rhsname.isin(rhsname_list)], style='type', hue='rhsname', x="dt", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='dt_{}')
                     summarize(df=summary_df[(summary_df.f0eps==f0eps) & (summary_df.tTrain==t) & (summary_df.fidelity==fid)], style='type', hue='rhsname', x="dt", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='dt_all_{}')
                 except:
                     print('plot failed for:', plot_output_dir)
