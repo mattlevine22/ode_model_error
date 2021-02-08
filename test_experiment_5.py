@@ -61,8 +61,7 @@ def main(cmd_py, output_dir, cmd_job, datagen, conda_env, **kwargs):
             pickle.dump(summary_df, file, pickle.HIGHEST_PROTOCOL)
 
     if kwargs['mode']=='all':
-        lop = [['modelType-continuous', 'dt-0.001', 'trainNumber-0'],
-                ['modelType-Euler', 'dt-0.001', 'trainNumber-0']
+        lop = [['f0only']
                ]
         prioritized_job_sender(all_job_fnames,
                                 bash_command=cmd_job,
@@ -139,9 +138,11 @@ def declare_jobs(data_pathname, datagen_settings, output_dir, master_job_file, c
 
     return all_job_fnames, combined_settings
 
-def prioritized_job_sender(all_job_fnames, bash_command, list_of_priorities):
+def prioritized_job_sender(all_job_fnames, bash_command, list_of_priorities, do_all=False):
 
-    list_of_priorities.append(['']) # this includes all remaining things at the end
+    if do_all:
+        list_of_priorities.append(['']) # this includes all remaining things at the end
+
     for check_list in list_of_priorities:
         rmv_nms = []
         for job_fname in all_job_fnames:
