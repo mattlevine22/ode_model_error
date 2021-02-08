@@ -86,6 +86,7 @@ def declare_jobs(data_pathname, datagen_settings, output_dir, master_job_file, c
                  'diff': ['TrueDeriv','Euler', 'Spline'],
                  'costIntegration': ['datagrid', 'interp'],
                  'tTrain': [10, 50, 100, 250, 500],
+                 'rfDim': rfDim_list,
                  'usef0': [0],
                  'doResidual': [0],
                  'stateType': ['state'],
