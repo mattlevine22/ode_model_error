@@ -130,7 +130,7 @@ def declare_jobs(data_pathname, datagen_settings, output_dir, master_job_file, c
 
     # true-model run
     combined_settings['usef0'] = [1]
-    combined_settings['f0eps'] = [0]
+    combined_settings['f0eps'] = [0, 0.001, 0.05]
     combined_settings['modelType'] = ['f0only']
     combined_settings['diff'] = ['TrueDeriv']
     combined_settings['costIntegration'] = ['fonly']
@@ -258,7 +258,7 @@ def run_summary(output_dir):
                     summarize(df=summary_df[(summary_df.dt==dt) & (summary_df.tTrain==t) & (summary_df.fidelity==fid)], style='type', hue='rhsname', x="f0eps", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='eps_all_{}')
                 except:
                     print('plot failed for:', plot_output_dir)
-    #
+
     ## DeltaT-based summary
     for fid in summary_df.fidelity.unique():
         for f0eps in summary_df.f0eps.unique():
