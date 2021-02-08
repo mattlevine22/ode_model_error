@@ -215,8 +215,9 @@ def run_summary(output_dir):
 
     # subset summary
     # summary_df = summary_df[(summary_df.modelType!='Psi')]
+    pdb.set_trace()
     summary_df.differentiation_error = 1*summary_df.differentiation_error
-    
+
     ## build a custom, legible epsilon plot
     # TrueDeriv-DataGrid (rhs idealized)
     # spline w/ DataGrid (rhs practical)
