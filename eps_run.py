@@ -222,7 +222,7 @@ def run_summary(output_dir):
     with open(summary_df_name, "rb") as file:
         summary_df = pickle.load(file)
     summary_df = df_eval(df=summary_df)
-    metric_list = ['rmse_total', 't_valid_050', 't_valid_005', 'regularization_RF', 'rf_Win_bound', 'rf_bias_bound', 'differentiation_error']
+    metric_list = ['t_valid_005', 'differentiation_error']
 
     # subset summary
     # summary_df = summary_df[(summary_df.modelType!='Psi')]
