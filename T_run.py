@@ -61,7 +61,7 @@ def main(cmd_py, output_dir, cmd_job, datagen, conda_env, **kwargs):
             pickle.dump(summary_df, file, pickle.HIGHEST_PROTOCOL)
 
     if kwargs['mode']=='all':
-        lop = [['f0only']
+        lop = [['trainNumber-0']
                ]
         prioritized_job_sender(all_job_fnames,
                                 bash_command=cmd_job,
