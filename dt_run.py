@@ -78,7 +78,7 @@ def declare_jobs(data_pathname, datagen_settings, output_dir, master_job_file, c
                         't_test': 20}
 
     f0eps_list = [0.05]
-    dt_list = [0.0001, 0.001, 0.01, 0.05, 0.1, 0.2]
+    dt_list = [0.0001, 0.001, 0.01, 0.05, 0.1, 0.2, 0.5, 1.0]
 
     ## rhs runs
     combined_settings = { 'modelType': ['rhs'],
