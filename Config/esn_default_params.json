@@ -1,7 +1,8 @@
 {
+  "useNTrain": 0,
   "dt_test": 0.1,
   "retrain": 0,
-  "retest": 1,
+  "retest": 0,
   "validate_hyperparameters": 0,
   "regularization_RF": 1e-10,
   "scaler_tt": "standard",

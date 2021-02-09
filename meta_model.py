@@ -54,6 +54,10 @@ class IDK(object):
 		for key in params:
 			exec('self.{} = params["{}"]'.format(key, key))
 
+		#
+		if self.useNTrain:
+			self.tTrain = self.NTrain * self.dt
+
 		# for now, ignore the fixed test dt and test at training data dt
 		self.dt_test = self.dt
 
