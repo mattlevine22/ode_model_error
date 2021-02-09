@@ -79,7 +79,7 @@ def declare_jobs(data_pathname, datagen_settings, output_dir, master_job_file, c
 
     f0eps_list = [0.2]
     dt_list = [0.01]
-    rfDim_list = [200]
+    rfDim_list = [200, 2000]
 
     ## rhs runs
     combined_settings = { 'modelType': ['rhs'],
@@ -239,17 +239,18 @@ def run_summary(output_dir):
     # Psi
     rhsname_list = ['rhs w/ diff=TrueDeriv, costInt=datagrid', 'rhs w/ diff=Spline, costInt=datagrid', 'f0only', 'Psi']
 
-    for fid in summary_df.fidelity.unique():
-        for dt in summary_df.dt.unique():
-            for f0eps in summary_df.f0eps.unique():
-                plot_output_dir = os.path.join(output_dir, 'summary_rfDim_plotsLEGIBLE_dt{dt}_f0eps{f0eps}_fid{fid}'.format(dt=dt, f0eps=f0eps, fid=fid))
-                os.makedirs(plot_output_dir, exist_ok=True)
-                try:
-                    summarize(df=summary_df[(summary_df.stateType!='stateAndPred') & (summary_df.dt==dt) & (summary_df.f0eps==f0eps) & (summary_df.fidelity==fid) & summary_df.rhsname.isin(rhsname_list)], style='type', hue='rhsname', x="tTrain", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='tTrain_legible_{}')
-                    summarize(df=summary_df[(summary_df.stateType!='stateAndPred') & (summary_df.dt==dt) & (summary_df.f0eps==f0eps) & (summary_df.fidelity==fid)], style='type', hue='rhsname', x="tTrain", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='tTrain_{}')
-                    summarize(df=summary_df[(summary_df.dt==dt) & (summary_df.f0eps==f0eps) & (summary_df.fidelity==fid) & summary_df.rhsname.isin(rhsname_list)], style='type', hue='rhsname', x="tTrain", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='tTrain_all_{}')
-                except:
-                    print('plot failed for:', plot_output_dir)
+    for rfDim in summary_df.rfDim.unique():
+        for fid in summary_df.fidelity.unique():
+            for dt in summary_df.dt.unique():
+                for f0eps in summary_df.f0eps.unique():
+                    plot_output_dir = os.path.join(output_dir, 'summary_tTrain_plotsLEGIBLE_dt{dt}_f0eps{f0eps}_fid{fid}_rfDim{rfDim}'.format(dt=dt, f0eps=f0eps, fid=fid, rfDim=rfDim))
+                    os.makedirs(plot_output_dir, exist_ok=True)
+                    try:
+                        summarize(df=summary_df[(summary_df.stateType!='stateAndPred') & (summary_df.dt==dt) & (summary_df.f0eps==f0eps) & (summary_df.fidelity==fid) & (summary_df.rfDim==rfDim) & summary_df.rhsname.isin(rhsname_list)], style='type', hue='rhsname', x="tTrain", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='tTrain_legible_{}')
+                        summarize(df=summary_df[(summary_df.stateType!='stateAndPred') & (summary_df.dt==dt) & (summary_df.f0eps==f0eps) & (summary_df.fidelity==fid) & (summary_df.rfDim==rfDim)], style='type', hue='rhsname', x="tTrain", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='tTrain_{}')
+                        summarize(df=summary_df[(summary_df.dt==dt) & (summary_df.f0eps==f0eps) & (summary_df.fidelity==fid) & (summary_df.rfDim==rfDim) & summary_df.rhsname.isin(rhsname_list)], style='type', hue='rhsname', x="tTrain", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='tTrain_all_{}')
+                    except:
+                        print('plot failed for:', plot_output_dir)
 
 
 
