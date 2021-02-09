@@ -49,13 +49,13 @@ def get_settings(settings_path):
     settings["test_data_path"] = settings["data_pathname"]
     settings["delta_t"] = settings["dt"]
     if settings["usef0"]:
-        physics = L63()
+        physics1 = L63()
         eps = settings['f0eps']
-        physics.b = physics.b*(1+eps)
-        settings["f0"] = lambda t, y: physics.rhs(y, t)
+        physics1.b = physics1.b*(1+eps)
+        settings["f0"] = lambda t, y: physics1.rhs(y, t)
     if settings["diff"]=="TrueDeriv":
-        physics = L63()
-        settings["fTRUE"] = lambda t, y: physics.rhs(y, t)
+        physics2 = L63()
+        settings["fTRUE"] = lambda t, y: physics2.rhs(y, t)
 
     return settings
 
