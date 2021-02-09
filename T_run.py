@@ -242,7 +242,7 @@ def run_summary(output_dir):
     for fid in summary_df.fidelity.unique():
         for dt in summary_df.dt.unique():
             for f0eps in summary_df.f0eps.unique():
-                plot_output_dir = os.path.join(output_dir, 'summary_rfDim_plotsLEGIBLE_dt{dt}_tTrain{t}_fid{fid}'.format(dt=dt, t=t, fid=fid))
+                plot_output_dir = os.path.join(output_dir, 'summary_rfDim_plotsLEGIBLE_dt{dt}_f0eps{f0eps}_fid{fid}'.format(dt=dt, f0eps=f0eps, fid=fid))
                 os.makedirs(plot_output_dir, exist_ok=True)
                 try:
                     summarize(df=summary_df[(summary_df.stateType!='stateAndPred') & (summary_df.dt==dt) & (summary_df.f0eps==f0eps) & (summary_df.fidelity==fid) & summary_df.rhsname.isin(rhsname_list)], style='type', hue='rhsname', x="tTrain", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='tTrain_legible_{}')
