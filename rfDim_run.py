@@ -245,7 +245,7 @@ def run_summary(output_dir):
             for dt in summary_df.dt.unique():
                 for t in summary_df.tTrain.unique():
                     sub_df = sub_df1[(sub_df1.dt==dt) & (sub_df1.f0eps==f0eps) & (sub_df1.fidelity==fid) & (sub_df1.tTrain==t)]
-                    plot_output_dir = os.path.join(output_dir, 'summary_rfDim_plotsALL_dt{dt}_tTrain{t}_fid{fid}_f0eps'.format(dt=dt, t=t, fid=fid, f0eps=f0eps))
+                    plot_output_dir = os.path.join(output_dir, 'summary_rfDim_plotsALL_dt{dt}_tTrain{t}_fid{fid}_f0eps{f0eps}'.format(dt=dt, t=t, fid=fid, f0eps=f0eps))
                     os.makedirs(plot_output_dir, exist_ok=True)
                     try:
                         summarize(df=sub_df, style='type', hue='rhsname', x="rfDim", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='rfDim_{}')
