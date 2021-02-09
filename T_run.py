@@ -232,21 +232,22 @@ def run_summary(output_dir):
     # summary_df = summary_df[(summary_df.modelType!='Psi')]
     summary_df.differentiation_error = summary_df.differentiation_error.astype(float)
 
-    ## build a custom, legible epsilon plot
+    ## build a custom, legible tTrain plot
     # TrueDeriv-DataGrid (rhs idealized)
     # spline w/ DataGrid (rhs practical)
     # f0only (physics only)
     # Psi
     rhsname_list = ['rhs w/ diff=TrueDeriv, costInt=datagrid', 'rhs w/ diff=Spline, costInt=datagrid', 'f0only', 'Psi']
+
     for fid in summary_df.fidelity.unique():
         for dt in summary_df.dt.unique():
-            for t in summary_df.tTrain.unique():
+            for f0eps in summary_df.f0eps.unique():
                 plot_output_dir = os.path.join(output_dir, 'summary_rfDim_plotsLEGIBLE_dt{dt}_tTrain{t}_fid{fid}'.format(dt=dt, t=t, fid=fid))
                 os.makedirs(plot_output_dir, exist_ok=True)
                 try:
-                    summarize(df=summary_df[(summary_df.stateType!='stateAndPred') & (summary_df.dt==dt) & (summary_df.tTrain==t) & (summary_df.fidelity==fid) & summary_df.rhsname.isin(rhsname_list)], style='type', hue='rhsname', x="tTrain", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='tTrain_legible_{}')
-                    summarize(df=summary_df[(summary_df.stateType!='stateAndPred') & (summary_df.dt==dt) & (summary_df.tTrain==t) & (summary_df.fidelity==fid)], style='type', hue='rhsname', x="tTrain", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='tTrain_{}')
-                    summarize(df=summary_df[(summary_df.dt==dt) & (summary_df.tTrain==t) & (summary_df.fidelity==fid) & summary_df.rhsname.isin(rhsname_list)], style='type', hue='rhsname', x="tTrain", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='tTrain_all_{}')
+                    summarize(df=summary_df[(summary_df.stateType!='stateAndPred') & (summary_df.dt==dt) & (summary_df.f0eps==f0eps) & (summary_df.fidelity==fid) & summary_df.rhsname.isin(rhsname_list)], style='type', hue='rhsname', x="tTrain", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='tTrain_legible_{}')
+                    summarize(df=summary_df[(summary_df.stateType!='stateAndPred') & (summary_df.dt==dt) & (summary_df.f0eps==f0eps) & (summary_df.fidelity==fid)], style='type', hue='rhsname', x="tTrain", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='tTrain_{}')
+                    summarize(df=summary_df[(summary_df.dt==dt) & (summary_df.f0eps==f0eps) & (summary_df.fidelity==fid) & summary_df.rhsname.isin(rhsname_list)], style='type', hue='rhsname', x="tTrain", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='tTrain_all_{}')
                 except:
                     print('plot failed for:', plot_output_dir)
 
