@@ -240,7 +240,7 @@ def run_summary(output_dir):
     for fid in summary_df.fidelity.unique():
         for f0eps in summary_df.f0eps.unique():
             for t in summary_df.tTrain.unique():
-                sub_df = sub_df1[(sub_df1.t==t) & (sub_df1.f0eps==f0eps) & (sub_df1.fidelity==fid)]
+                sub_df = sub_df1[(sub_df1.tTrain==t) & (sub_df1.f0eps==f0eps) & (sub_df1.fidelity==fid)]
                 plot_output_dir = os.path.join(output_dir, 'summary_dt_plotsLEGIBLE_f0eps{f0eps}_tTrain{t}_fid{fid}'.format(f0eps=f0eps, t=t, fid=fid))
                 os.makedirs(plot_output_dir, exist_ok=True)
                 try:
