@@ -239,17 +239,19 @@ def run_summary(output_dir):
     # Psi
     rhsname_list = ['rhs w/ diff=TrueDeriv, costInt=datagrid', 'rhs w/ diff=Spline, costInt=datagrid', 'f0only', 'Psi']
     ## Epsilon-based summary
-    for fid in summary_df.fidelity.unique():
-        for dt in summary_df.dt.unique():
-            for t in summary_df.tTrain.unique():
-                plot_output_dir = os.path.join(output_dir, 'summary_rfDim_plotsALL_dt{dt}_tTrain{t}_fid{fid}'.format(dt=dt, t=t, fid=fid))
-                os.makedirs(plot_output_dir, exist_ok=True)
-                try:
-                    summarize(df=summary_df[(summary_df.stateType!='stateAndPred') & (summary_df.dt==dt) & (summary_df.tTrain==t) & (summary_df.fidelity==fid)], style='type', hue='rhsname', x="rfDim", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='rfDim_{}')
-                    summarize(df=summary_df[(summary_df.stateType!='stateAndPred') & (summary_df.dt==dt) & (summary_df.tTrain==t) & (summary_df.fidelity==fid) & summary_df.rhsname.isin(rhsname_list)], style='type', hue='rhsname', x="rfDim", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='rfDim_legible_{}')
-                    summarize(df=summary_df[(summary_df.dt==dt) & (summary_df.tTrain==t) & (summary_df.fidelity==fid)], style='type', hue='rhsname', x="rfDim", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='rfDim_all_{}')
-                except:
-                    print('plot failed for:', plot_output_dir)
+    sub_df1 = summary_df[summary_df.stateType!='stateAndPred']
+    for f0eps in summary_df.f0eps.unique():
+        for fid in summary_df.fidelity.unique():
+            for dt in summary_df.dt.unique():
+                for t in summary_df.tTrain.unique():
+                    sub_df = sub_df1[(sub_df1.dt==dt) & (sub_df1.f0eps==f0eps) & (sub_df1.fidelity==fid) & (sub_df1.tTrain==t)]
+                    plot_output_dir = os.path.join(output_dir, 'summary_rfDim_plotsALL_dt{dt}_tTrain{t}_fid{fid}_f0eps'.format(dt=dt, t=t, fid=fid, f0eps=f0eps))
+                    os.makedirs(plot_output_dir, exist_ok=True)
+                    try:
+                        summarize(df=sub_df, style='type', hue='rhsname', x="rfDim", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='rfDim_{}')
+                        summarize(df=sub_df[sub_df.rhsname.isin(rhsname_list)], style='type', hue='rhsname', x="rfDim", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='rfDim_legible_{}')
+                    except:
+                        print('plot failed for:', plot_output_dir)
 
 
 if __name__ == '__main__':

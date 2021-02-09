@@ -234,14 +234,16 @@ def run_summary(output_dir):
     # f0only (physics only)
     # Psi
     rhsname_list = ['rhs w/ diff=TrueDeriv, costInt=datagrid', 'rhs w/ diff=Spline, costInt=datagrid', 'f0only', 'Psi']
+    sub_df1 = summary_df[summary_df.stateType!='stateAndPred']
     for fid in summary_df.fidelity.unique():
         for dt in summary_df.dt.unique():
             for t in summary_df.tTrain.unique():
+                sub_df = sub_df1[(sub_df1.dt==dt) & (sub_df1.tTrain==t) & (sub_df1.fidelity==fid)]
                 plot_output_dir = os.path.join(output_dir, 'summary_epsilon_plotsLEGIBLE_dt{dt}_tTrain{t}_fid{fid}'.format(dt=dt, t=t, fid=fid))
                 os.makedirs(plot_output_dir, exist_ok=True)
                 try:
-                    summarize(df=summary_df[(summary_df.stateType!='stateAndPred') & (summary_df.dt==dt) & (summary_df.tTrain==t) & (summary_df.fidelity==fid) & summary_df.rhsname.isin(rhsname_list)], style='type', hue='rhsname', x="f0eps", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='eps_{}')
-                    summarize(df=summary_df[(summary_df.stateType!='stateAndPred') & (summary_df.dt==dt) & (summary_df.tTrain==t) & (summary_df.fidelity==fid)], style='type', hue='rhsname', x="f0eps", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='eps_all_{}')
+                    summarize(df=sub_df[sub_df.rhsname.isin(rhsname_list)], style='type', hue='rhsname', x="f0eps", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='eps_{}')
+                    summarize(df=sub_df, style='type', hue='rhsname', x="f0eps", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='eps_all_{}')
                 except:
                     print('plot failed for:', plot_output_dir)
 
