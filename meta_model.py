@@ -211,6 +211,38 @@ class IDK(object):
 				self.xdot_vec[k] = (self.x_vec[k+1] - self.x_vec[k]) / self.dt
 			# need to deal with boundary issue
 			self.xdot_vec[-1] = self.xdot_vec[-2]
+		elif self.diff == 'FD1forward':
+			self.xdot_vec = np.zeros(self.xdot_vec_TRUE.shape)
+			for k in range(len(t_vec)-1):
+				self.xdot_vec[k] = (self.x_vec[k+1] - self.x_vec[k]) / self.dt
+			# do backward euler for last element
+			self.xdot_vec[-1] = (self.x_vec[-1] - self.x_vec[-2]) / self.dt
+		elif self.diff == 'FD1backward':
+			self.xdot_vec = np.zeros(self.xdot_vec_TRUE.shape)
+			for k in range(1,len(t_vec)):
+				self.xdot_vec[k] = (self.x_vec[k] - self.x_vec[k-1]) / self.dt
+			# do forward euler for first element
+			self.xdot_vec[0] = (self.x_vec[1] - self.x_vec[0]) / self.dt
+		elif self.diff == 'FD2':
+			self.xdot_vec = np.zeros(self.xdot_vec_TRUE.shape)
+			for k in range(1, len(t_vec)-1):
+				self.xdot_vec[k] = (self.x_vec[k+1] - self.x_vec[k-1]) / (2*self.dt)
+			# do forward euler for first element
+			self.xdot_vec[0] = (self.x_vec[1] - self.x_vec[0]) / self.dt
+			# do backward euler for last element
+			self.xdot_vec[-1] = (self.x_vec[-1] - self.x_vec[-2]) / self.dt
+		elif self.diff == 'FD4':
+			self.xdot_vec = np.zeros(self.xdot_vec_TRUE.shape)
+			for k in range(2, len(t_vec)-2):
+				self.xdot_vec[k] = (-self.x_vec[k+2] + 8*self.x_vec[k+1] - 8*self.x_vec[k-1] + self.x_vec[k-2]) / (12*self.dt)
+			# do forward euler for first element
+			self.xdot_vec[0] = (self.x_vec[1] - self.x_vec[0]) / self.dt
+			# do central diff for second element
+			self.xdot_vec[1] = (self.x_vec[2] - self.x_vec[0]) / (2*self.dt)
+			# do central diff for second-to-last element
+			self.xdot_vec[-2] = (self.x_vec[-1] - self.x_vec[-3]) / (2*self.dt)
+			# do backward euler for last element
+			self.xdot_vec[-1] = (self.x_vec[-1] - self.x_vec[-2]) / self.dt
 		else:
 			print('Not differentiating.')
 			self.differentiation_error = None
