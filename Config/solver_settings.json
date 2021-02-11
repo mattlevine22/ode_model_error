@@ -4,10 +4,10 @@
             "dt_frac": 1
           },
   "RK23default": {
-            "method": "RK23",
+            "method": "RK23"
           },
   "DOP853default": {
-            "method": "DOP853",
+            "method": "DOP853"
           },
   "default": {
             "method": "RK45",
