@@ -1,4 +1,5 @@
 {
+  "derivNoiseSD": 0,
   "useNTrain": 0,
   "dt_test": 0.1,
   "retrain": 0,

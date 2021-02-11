@@ -199,6 +199,8 @@ class IDK(object):
 		# get derivative
 		if self.diff == 'TrueDeriv': # use true derivative
 			self.xdot_vec = np.copy(self.xdot_vec_TRUE)
+			if self.derivNoiseSD:
+				self.xdot_vec += np.random.normal(scale=self.derivNoiseSD, size=self.xdot_vec.shape)
 		elif self.diff == 'Spline': # do spline derivative
 			self.xdot_spline = [CubicSpline(x=t_vec, y=self.x_vec[:,k]).derivative() for k in range(self.input_dim)]
 			# get m(t) for all time JUST to have its statistics for normalization ahead of time
