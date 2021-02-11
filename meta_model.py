@@ -223,7 +223,7 @@ class IDK(object):
 				self.xdot_vec[k] = (self.x_vec[k] - self.x_vec[k-1]) / self.dt
 			# do forward euler for first element
 			self.xdot_vec[0] = (self.x_vec[1] - self.x_vec[0]) / self.dt
-		elif self.diff == 'FD2':
+		elif self.diff == 'FD2central':
 			self.xdot_vec = np.zeros(self.xdot_vec_TRUE.shape)
 			for k in range(1, len(t_vec)-1):
 				self.xdot_vec[k] = (self.x_vec[k+1] - self.x_vec[k-1]) / (2*self.dt)
@@ -231,7 +231,7 @@ class IDK(object):
 			self.xdot_vec[0] = (self.x_vec[1] - self.x_vec[0]) / self.dt
 			# do backward euler for last element
 			self.xdot_vec[-1] = (self.x_vec[-1] - self.x_vec[-2]) / self.dt
-		elif self.diff == 'FD4':
+		elif self.diff == 'FD4central':
 			self.xdot_vec = np.zeros(self.xdot_vec_TRUE.shape)
 			for k in range(2, len(t_vec)-2):
 				self.xdot_vec[k] = (-self.x_vec[k+2] + 8*self.x_vec[k+1] - 8*self.x_vec[k-1] + self.x_vec[k-2]) / (12*self.dt)
@@ -328,7 +328,7 @@ class IDK(object):
 		# self.first_train_vec = train_input_sequence[(self.dynamics_length+1),:]
 
 	def test(self):
-		for fidelity in ['Euler', 'default', 'lowfi', 'medfi', 'hifi', 'hifiPlus']:
+		for fidelity in ['Euler', 'default', 'RK23default', 'DOP853default', 'lowfi', 'medfi', 'hifi', 'hifiPlus']:
 			self.set_fidelity(fidelity)
 			test_eval = self.testingOnSet(setnm='test', fidelity_name=fidelity)
 			self.write_stats(pd_stat=test_eval, stat_name='test_eval_{}'.format(fidelity))
