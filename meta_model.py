@@ -141,9 +141,9 @@ class IDK(object):
 		self.setup_timeseries()
 
 		# Do a hyperparameter optimization using a validation step
-		if self.validate_hyperparameters:
+		self.set_fidelity('hifi')
+		if self.validate_rf:
 			# switch to lowfi quadrature for cheap validation runs
-			self.set_fidelity('lowfi')
 
 			# first learn W, b using default regularization
 			pbounds = {'rf_Win_bound': (0,10),
@@ -162,12 +162,13 @@ class IDK(object):
 			print("Optimal parameters:", best_param_dict, '(quality = {})'.format(best_quality))
 			# re-setup things with optimal parameters (new realization using preferred hyperparams)
 			self.set_BO_keyval(best_param_dict)
-			# return to hifi quadrature for final solve
-			self.set_fidelity('hifi')
-			self.setup_the_learning()
 
+		# create Y, Z using chosen RF-parameters
+		self.setup_the_learning()
+
+		# select optimal regularization under the chosen Y, Z
+		if self.validate_regularization:
 			# now fix the optimal W,b and the learned Y,Z... just learn the optimal regularization for the inversion
-			self.set_fidelity('lowfi')
 			lambda_validation_f = lambda **kwargs: self.validation_function(setup_learning=False, **kwargs)
 			pbounds = {'log_regularization_RF': (-20, 0)}
 			optimizer = BayesianOptimization(f=lambda_validation_f,
@@ -182,10 +183,6 @@ class IDK(object):
 			best_quality = optimizer.max['target']
 			print("Optimal parameters:", best_param_dict, '(quality = {})'.format(best_quality))
 			self.set_BO_keyval(best_param_dict)
-			self.set_fidelity('hifi')
-		else:
-			self.set_fidelity('hifi')
-			self.setup_the_learning()
 
 		# solve for the final Y,Z, regI and save
 		self.doNewSolving()
