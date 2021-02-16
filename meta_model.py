@@ -184,6 +184,16 @@ class IDK(object):
 			print("Optimal parameters:", best_param_dict, '(quality = {})'.format(best_quality))
 			self.set_BO_keyval(best_param_dict)
 
+			# plot results from validation runs
+			pdb.set_trace()
+			opt_list = []
+			for i in range()
+				new_dict = optimizer.res[i]['params']
+				new_dict['target'] = optimizer.res[i]['target']
+				opt_list.append(new_dict)
+			df = pd.DataFrame(opt_list)
+			plotValidation()
+
 		# solve for the final Y,Z, regI and save
 		self.doNewSolving()
 		self.saveModel()
