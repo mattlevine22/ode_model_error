@@ -187,9 +187,9 @@ class IDK(object):
 			# plot results from validation runs
 			pdb.set_trace()
 			opt_list = []
-			for i in range():
-				new_dict = optimizer.res[i]['params']
-				new_dict['target'] = optimizer.res[i]['target']
+			for el in optimizer.res:
+				new_dict = el['params']
+				new_dict['target'] = el['target']
 				opt_list.append(new_dict)
 			df = pd.DataFrame(opt_list)
 			plotValidation()
