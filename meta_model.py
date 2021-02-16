@@ -178,7 +178,7 @@ class IDK(object):
 			logger = JSONLogger(path=log_path) #conda version doesnt have RESET feature
 			optimizer.subscribe(Events.OPTIMIZATION_STEP, logger)
 			optimizer.probe(params={"log_regularization_RF": np.log10(self.regularization_RF)}, lazy=True)
-			optimizer.maximize(init_points=5, n_iter=5, acq='ucb')
+			optimizer.maximize(init_points=2, n_iter=2, acq='ucb')
 			best_param_dict = optimizer.max['params']
 			best_quality = optimizer.max['target']
 			print("Optimal parameters:", best_param_dict, '(quality = {})'.format(best_quality))
@@ -501,16 +501,16 @@ class IDK(object):
 
 	def makeValidationPlots(self, df, plot_nm=''):
 		x_names = df.columns[df.columns!='target']
-		fig_path = os.path.join(self.fig_dir, "validation_{}.png".format(plot_nm))
-		fig, ax = plt.subplots(nrows=1, ncols=len(x_names), figsize=(12, 12), squeeze=0)
 		for i in range(len(x_names)):
 			xnm = x_names[i]
-			ax[i].scatter(df[xnm], df.target, color='blue')
-			ax[i].set_xlabel(xnm)
-			ax[i].set_ylabel('target')
-		plt.suptitle('Validation Plots')
-		plt.savefig(fig_path)
-		plt.close()
+			fig_path = os.path.join(self.fig_dir, "validation_{}_{}.png".format(plot_nm, xnm))
+			fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(12, 12))
+			ax.scatter(df[xnm], df.target, color='blue')
+			ax.set_xlabel(xnm)
+			ax.set_ylabel('target')
+			plt.suptitle('Validation Plots')
+			plt.savefig(fig_path)
+			plt.close()
 
 
 	def makeNewPlots(self, true_traj, predicted_traj, set_name=''):
