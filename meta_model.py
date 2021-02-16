@@ -185,14 +185,14 @@ class IDK(object):
 			self.set_BO_keyval(best_param_dict)
 
 			# plot results from validation runs
-			pdb.set_trace()
 			opt_list = []
 			for el in optimizer.res:
 				new_dict = el['params']
 				new_dict['target'] = el['target']
 				opt_list.append(new_dict)
 			df = pd.DataFrame(opt_list)
-			plotValidation()
+			pdb.set_trace()
+			self.makeValidationPlots(df=df, plot_nm='reg')
 
 		# solve for the final Y,Z, regI and save
 		self.doNewSolving()
@@ -498,6 +498,21 @@ class IDK(object):
 			dx = self.scaler.descaleM(f_error_markov)
 
 		return dx
+
+	def makeValidationPlots(self, df, plot_nm=''):
+		pdb.set_trace()
+		x_names = df.columns[df.columns!='target']
+		fig_path = os.path.join(self.fig_dir, "validation_{}.png".format(plot_nm))
+		fig, ax = plt.subplots(nrows=1, ncols=len(x_names), figsize=(12, 12))
+		for i in range(len(x_names)):
+			xnm = x_names[i]
+			ax[i].scatter(df[xnm], df.target, color='blue')
+			ax[i].set_xlabel(xnm)
+			ax[i].set_ylabel('target')
+		plt.suptitle('Validation Plots')
+		plt.savefig(fig_path)
+		plt.close()
+
 
 	def makeNewPlots(self, true_traj, predicted_traj, set_name=''):
 		n_times = true_traj.shape[0] # self.X
