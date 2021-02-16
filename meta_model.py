@@ -178,7 +178,7 @@ class IDK(object):
 			logger = JSONLogger(path=log_path) #conda version doesnt have RESET feature
 			optimizer.subscribe(Events.OPTIMIZATION_STEP, logger)
 			optimizer.probe(params={"log_regularization_RF": np.log10(self.regularization_RF)}, lazy=True)
-			optimizer.maximize(init_points=5, n_iter=30, acq='ucb')
+			optimizer.maximize(init_points=5, n_iter=5, acq='ucb')
 			best_param_dict = optimizer.max['params']
 			best_quality = optimizer.max['target']
 			print("Optimal parameters:", best_param_dict, '(quality = {})'.format(best_quality))
@@ -187,7 +187,7 @@ class IDK(object):
 			# plot results from validation runs
 			pdb.set_trace()
 			opt_list = []
-			for i in range()
+			for i in range():
 				new_dict = optimizer.res[i]['params']
 				new_dict['target'] = optimizer.res[i]['target']
 				opt_list.append(new_dict)
