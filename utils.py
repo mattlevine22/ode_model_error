@@ -11,6 +11,15 @@ import itertools
 import pandas as pd
 import pdb
 
+def optimizer_as_df(optimizer):
+	opt_list = []
+	for el in optimizer.res:
+		new_dict = el['params']
+		new_dict['target'] = el['target']
+		opt_list.append(new_dict)
+	df = pd.DataFrame(opt_list)
+    return df
+
 def df_eval(df):
     # read in things
     df_list = []

@@ -21,7 +21,7 @@ from sklearn.linear_model import Lasso
 from odelibrary import my_solve_ivp, L63
 
 # matt utils
-from utils import file_to_dict
+from utils import file_to_dict, optimizer_as_df
 from plotting_utils import *
 from computation_utils import *
 
@@ -178,20 +178,14 @@ class IDK(object):
 			logger = JSONLogger(path=log_path) #conda version doesnt have RESET feature
 			optimizer.subscribe(Events.OPTIMIZATION_STEP, logger)
 			optimizer.probe(params={"log_regularization_RF": np.log10(self.regularization_RF)}, lazy=True)
-			optimizer.maximize(init_points=2, n_iter=2, acq='ucb')
+			optimizer.maximize(init_points=5, n_iter=30, acq='ucb')
 			best_param_dict = optimizer.max['params']
 			best_quality = optimizer.max['target']
 			print("Optimal parameters:", best_param_dict, '(quality = {})'.format(best_quality))
 			self.set_BO_keyval(best_param_dict)
 
 			# plot results from validation runs
-			opt_list = []
-			for el in optimizer.res:
-				new_dict = el['params']
-				new_dict['target'] = el['target']
-				opt_list.append(new_dict)
-			df = pd.DataFrame(opt_list)
-			pdb.set_trace()
+			df = optimizer_as_df(optimizer)
 			self.makeValidationPlots(df=df, plot_nm='reg')
 
 		# solve for the final Y,Z, regI and save
