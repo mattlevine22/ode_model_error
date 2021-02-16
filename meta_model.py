@@ -500,10 +500,9 @@ class IDK(object):
 		return dx
 
 	def makeValidationPlots(self, df, plot_nm=''):
-		pdb.set_trace()
 		x_names = df.columns[df.columns!='target']
 		fig_path = os.path.join(self.fig_dir, "validation_{}.png".format(plot_nm))
-		fig, ax = plt.subplots(nrows=1, ncols=len(x_names), figsize=(12, 12))
+		fig, ax = plt.subplots(nrows=1, ncols=len(x_names), figsize=(12, 12), squeeze=0)
 		for i in range(len(x_names)):
 			xnm = x_names[i]
 			ax[i].scatter(df[xnm], df.target, color='blue')
