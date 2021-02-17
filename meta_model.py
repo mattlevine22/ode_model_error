@@ -189,6 +189,7 @@ class IDK(object):
 			self.makeValidationPlots(df=df, plot_nm='reg')
 
 		# solve for the final Y,Z, regI and save
+		pdb.set_trace()
 		self.doNewSolving()
 		self.saveModel()
 
@@ -335,13 +336,14 @@ class IDK(object):
 			self.write_stats(pd_stat=test_eval, stat_name='test_eval_{}'.format(fidelity))
 			if fidelity=='hifi':
 				self.write_stats(pd_stat=test_eval, stat_name='test_eval')
-			print(test_eval.mean())
+			print('Mean:' test_eval.mean())
+			print('SD:' test_eval.std())
 
 	def validate(self):
 		# self.testingOnTrainingSet()
 		validate_eval = self.testingOnSet(setnm='validate', do_plots=False)
-		# self.saveResults()
-		# self.write_testing_stats()
+		print('Mean:' validate_eval.mean())
+		print('SD:' validate_eval.std())
 		return validate_eval
 
 	def set_BO_keyval(self, my_dict):
@@ -375,8 +377,8 @@ class IDK(object):
 		n_traj = eval_data.shape[0]
 		test_eval = []
 		# loop over test sets
+		print('Evaluating', n_traj, setnm, 'sets')
 		for n in range(n_traj):
-			print('Evaluating',setnm, 'set #', n+1, '/', n_traj)
 			test_input_sequence = self.subsample(x=eval_data[n], t_end=self.t_test, dt_subsample=self.dt_test)
 			eval_dict = self.eval(input_sequence=test_input_sequence, t_end=self.t_test, set_name=setnm+fidelity_name+str(n), do_plots=do_plots)
 			test_eval.append(eval_dict)
