@@ -35,7 +35,7 @@ def main(cmd_py, output_dir, cmd_job, datagen, conda_env, **kwargs):
 
     datagen_settings = {'rng_seed': 63,
                         't_transient': 30,
-                        't_train': 105,
+                        't_train': 1005,
                         't_invariant_measure': 100,
                         't_test': 20,
                         't_validate': 20,
