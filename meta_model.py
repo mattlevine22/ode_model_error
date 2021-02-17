@@ -73,7 +73,10 @@ class IDK(object):
 		self.fig_dir = os.path.join(self.saving_path, params["fig_dir"])
 		self.model_dir = os.path.join(self.saving_path, params["model_dir"])
 		self.logfile_dir = os.path.join(self.saving_path, params["logfile_dir"])
-		np.random.seed(self.rng_seed)
+
+		# randomly initialize at trainNumber
+		np.random.seed(self.trainNumber)
+
 		self.f0only = int(self.modelType=='f0only')
 		self.dynamics_length = 1
 
@@ -345,7 +348,7 @@ class IDK(object):
 		# self.first_train_vec = train_input_sequence[(self.dynamics_length+1),:]
 
 	def test(self):
-		for fidelity in ['hifi', 'Euler', 'default', 'RK23default', 'DOP853default', 'lowfi', 'medfi', 'hifiPlus']:
+		for fidelity in ['hifi', 'Euler', 'lowfi', 'medfi', 'hifiPlus']:
 			self.set_fidelity(fidelity)
 			test_eval = self.testingOnSet(setnm='test', fidelity_name=fidelity)
 			self.write_stats(pd_stat=test_eval, stat_name='test_eval_{}'.format(fidelity))
