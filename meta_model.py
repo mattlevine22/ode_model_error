@@ -189,7 +189,6 @@ class IDK(object):
 			self.makeValidationPlots(df=df, plot_nm='reg')
 
 		# solve for the final Y,Z, regI and save
-		pdb.set_trace()
 		self.doNewSolving()
 		self.saveModel()
 
@@ -336,14 +335,14 @@ class IDK(object):
 			self.write_stats(pd_stat=test_eval, stat_name='test_eval_{}'.format(fidelity))
 			if fidelity=='hifi':
 				self.write_stats(pd_stat=test_eval, stat_name='test_eval')
-			print('Mean:', test_eval.mean())
-			print('SD:', test_eval.std())
+			print('Mean:\n', test_eval.mean())
+			# print('SD:', test_eval.std())
 
 	def validate(self):
 		# self.testingOnTrainingSet()
 		validate_eval = self.testingOnSet(setnm='validate', do_plots=False)
-		print('Mean:', validate_eval.mean())
-		print('SD:', validate_eval.std())
+		print('Mean:\n', validate_eval.mean())
+		# print('SD:', validate_eval.std())
 		return validate_eval
 
 	def set_BO_keyval(self, my_dict):
