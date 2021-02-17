@@ -14,7 +14,7 @@ parser.add_argument('--mode', default='all', type=str)
 parser.add_argument('--datagen', default=1, type=int)
 parser.add_argument('--regen', default=0, type=int)
 parser.add_argument('--cmd_py', default='python3 main.py', type=str)
-parser.add_argument('--output_dir', default='/groups/astuart/mlevine/ode_model_error/experiments/l63eps_v5_T/', type=str)
+parser.add_argument('--output_dir', default='/groups/astuart/mlevine/ode_model_error/experiments/l63eps_v5_T_validateReg/', type=str)
 parser.add_argument('--cmd_job', default='bash', type=str)
 parser.add_argument('--conda_env', default='', type=str)
 parser.add_argument('--hours', default=2, type=int)
@@ -83,6 +83,7 @@ def declare_jobs(data_pathname, datagen_settings, output_dir, master_job_file, c
 
     ## rhs runs
     combined_settings = { 'modelType': ['rhs'],
+                 'useNTrain': [1],
                  'diff': ['TrueDeriv','Euler', 'Spline'],
                  'costIntegration': ['datagrid', 'interp'],
                  'tTrain': [10, 50, 100, 250, 500],
@@ -226,7 +227,7 @@ def run_summary(output_dir):
     with open(summary_df_name, "rb") as file:
         summary_df = pickle.load(file)
     summary_df = df_eval(df=summary_df)
-    metric_list = ['t_valid_005', 'differentiation_error']
+    metric_list = ['t_valid_005', 'differentiation_error', 'regularization_RF']
 
     # subset summary
     # summary_df = summary_df[(summary_df.modelType!='Psi')]
