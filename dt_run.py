@@ -240,9 +240,8 @@ def run_summary(output_dir):
     sub_df1 = summary_df[summary_df.stateType!='stateAndPred']
     for fid in summary_df.fidelity.unique():
         for f0eps in summary_df.f0eps.unique():
-            for t in summary_df.tTrain.unique():
-                sub_df = sub_df1[(sub_df1.tTrain==t) & (sub_df1.f0eps==f0eps) & (sub_df1.fidelity==fid)]
-                plot_output_dir = os.path.join(output_dir, 'summary_dt_plotsLEGIBLE_f0eps{f0eps}_tTrain{t}_fid{fid}'.format(f0eps=f0eps, t=t, fid=fid))
+                sub_df = sub_df1[(sub_df1.f0eps==f0eps) & (sub_df1.fidelity==fid)]
+                plot_output_dir = os.path.join(output_dir, 'summary_dt_plotsLEGIBLE_f0eps{f0eps}_fid{fid}'.format(f0eps=f0eps, fid=fid))
                 os.makedirs(plot_output_dir, exist_ok=True)
                 try:
                     summarize(df=sub_df[sub_df.rhsname.isin(rhsname_list)], style='type', hue='rhsname', x="dt", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='dt_{}')
