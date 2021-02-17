@@ -58,6 +58,14 @@ class IDK(object):
 		if self.useNTrain:
 			self.tTrain = self.NTrain * self.dt
 
+
+		# specify interpolation method for x(t), which is needed if solving ZY
+		# integrals using a quadrature that samples off of the data sample times t_k
+		if self.diff in ['Spline', 'TrueDeriv']:
+			self.interp = 'Spline'
+		else:
+			self.interp = 'Linear'
+
 		# for now, ignore the fixed test dt and test at training data dt
 		self.dt_test = self.dt
 
@@ -197,6 +205,14 @@ class IDK(object):
 		self.x_vec = np.copy(self.train_input_sequence)
 		self.x_vec_raw = self.scaler.descaleData(self.x_vec)
 		t_vec = self.dt*np.arange(self.x_vec.shape[0])
+
+		if self.interp=='Spline':
+			self.x_spline = [CubicSpline(x=t_vec, y=self.x_vec[:,k]) for k in range(self.input_dim)]
+		elif self.interp=='Linear':
+			pass
+		else:
+			raise ValueError('Interpolation method not recognized.')
+
 		# get derivative
 		if self.diff == 'TrueDeriv': # use true derivative
 			self.xdot_vec = np.copy(self.xdot_vec_TRUE)
@@ -569,8 +585,18 @@ class IDK(object):
 		self.W_in_markov = np.random.uniform(low=-self.rf_Win_bound, high=self.rf_Win_bound, size=(self.rfDim, self.input_dim_rf))
 
 	def x_t(self, t, t0=0):
-		#linearly interpolate self.x_vec at time t
-		return linear_interp(x_vec=self.x_vec, n_min=self.n_min, t=t, t0=t0, dt=self.dt)
+		# interpolate self.x_vec at time t
+		if self.interp=='Linear':
+			x = linear_interp(x_vec=self.x_vec, n_min=self.n_min, t=t, t0=t0, dt=self.dt)
+		elif self.interp=='Spline':
+			x = np.zeros(self.input_dim)
+			for k in range(self.input_dim):
+				x[k] = self.x_spline[k](t)
+		else:
+			raise ValueError('Interpolation method for x_t not recognized.')
+
+		return x
+
 
 	def xdot_t(self, t):
 		'''differentiate self.x_vec at time t using stored component-wise spline interpolant'''
@@ -666,6 +692,10 @@ class IDK(object):
 		else:
 			# allocate, reshape, normalize, and save solutions
 			self.getYZ(t_span=t_span)
+
+		print('|Z| =', np.mean(self.Z**2))
+		print('|Y| =', np.mean(self.Y**2))
+
 
 	def getYZ(self, t_span, k=None):
 		timer_start = time.time()
