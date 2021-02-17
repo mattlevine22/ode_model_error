@@ -363,7 +363,7 @@ class IDK(object):
 			self.setup_the_learning()
 		self.doNewSolving(do_plots=False)
 		quality_df = self.validate()
-		quality = quality_df.t_valid_050.mean()
+		quality = quality_df.t_valid_005.mean()
 		return quality
 
 
