@@ -79,7 +79,7 @@ def declare_jobs(data_pathname, datagen_settings, output_dir, master_job_file, c
 
     f0eps_list = [0.2]
     dt_list = [0.01]
-    rfDim_list = [5, 25, 50, 100, 200, 500, 1000, 2000, 5000]
+    rfDim_list = [5, 25, 50, 100, 200, 500, 1000, 2000, 5000, 10000]
 
     ## rhs runs
     combined_settings = { 'modelType': ['rhs'],
