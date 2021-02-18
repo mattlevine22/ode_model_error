@@ -138,7 +138,7 @@ def declare_jobs(data_pathname, datagen_settings, output_dir, master_job_file, c
     combined_settings['f0eps'] = [0]
     combined_settings['modelType'] = ['f0only']
     combined_settings['diff'] = ['TrueDeriv']
-    combined_settings['costIntegration'] = ['fonly']
+    combined_settings['costIntegration'] = ['f0only']
     all_job_fnames += queue_joblist(combined_settings=combined_settings, shared_settings=shared_settings, output_dir=output_dir, master_job_file=master_job_file, cmd=cmd_py, conda_env=conda_env, hours=hours)
 
     # bad-model runs
