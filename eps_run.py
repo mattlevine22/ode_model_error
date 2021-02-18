@@ -77,7 +77,7 @@ def declare_jobs(data_pathname, datagen_settings, output_dir, master_job_file, c
                         'input_dim': 3,
                         't_test': 20}
 
-    f0eps_list = [0.001, 0.05, 0.1, 0.2, 0.5, 1, 2, 2.5]
+    f0eps_list = [0.001, 0.05, 0.1, 0.2, 0.5, 1, 2, 2.5, 3, 4]
     ## rhs runs
     combined_settings = { 'modelType': ['rhs'],
                  'diff': ['TrueDeriv','Euler', 'Spline'],
