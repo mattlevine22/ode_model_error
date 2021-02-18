@@ -28,8 +28,8 @@ import pdb
 def summarize(df, hue, style, output_dir, metric_list, x="f0eps", fname_shape='summary_eps_{}'):
     for metric in metric_list:
         try:
-            fig, ax = plt.subplots(nrows=1, ncols=1,figsize=(12, 12))
-            sns.lineplot(ax=ax, data=df, x=x, y=metric, style=style, hue=hue, err_style='bars')
+            fig, ax = plt.subplots(nrows=1, ncols=1,figsize=(24, 12))
+            sns.lineplot(ax=ax, data=df, x=x, y=metric, style=style, hue=hue, err_style='bars', linewidth=2)
             fig_path = os.path.join(output_dir, fname_shape.format(metric))
             plt.savefig(fig_path)
             ax.set_yscale('log')
