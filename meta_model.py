@@ -18,7 +18,7 @@ print = partial(print, flush=True)
 from sklearn.linear_model import Ridge
 from sklearn.linear_model import Lasso
 
-from odelibrary import my_solve_ivp, L63
+from odelibrary import my_solve_ivp
 
 # matt utils
 from utils import file_to_dict, optimizer_as_df
@@ -381,7 +381,7 @@ class IDK(object):
 			self.setup_the_learning()
 		self.doNewSolving(do_plots=False)
 		quality_df = self.validate()
-		quality = quality_df.t_valid_005.mean()
+		quality = quality_df.t_valid_005.mean() + 0.0001*np.random.randn()
 		return quality
 
 
