@@ -33,7 +33,13 @@ def summarize(df, hue, style, output_dir, metric_list, x="f0eps", fname_shape='s
             fig_path = os.path.join(output_dir, fname_shape.format(metric))
             plt.savefig(fig_path)
             ax.set_yscale('log')
-            plt.savefig(fig_path + '_log')
+            plt.savefig(fig_path + '_ylog')
+
+            ax.set_xscale('log')
+            plt.savefig(fig_path + '_xlog_ylog')
+
+            ax.set_yscale('linear')
+            plt.savefig(fig_path + '_xlog')
         except:
             print('Failed at', metric)
             pass
