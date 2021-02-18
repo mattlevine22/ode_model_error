@@ -770,11 +770,44 @@ class IDK(object):
 
 			if do_plots:
 				plotMatrix(self, self.W_out_markov, 'W_out_markov')
+				self.plotModel()
 
 			# Compute residuals from inversion
 			res = (self.Z + regI) @ W_out_all.T - self.Y
 			mse = np.mean(res**2)
 			print('Inversion MSE for lambda_RF={lrf} is {mse} with normalized |Wout|={nrm}'.format(lrf=self.regularization_RF, mse=mse, nrm=np.mean(W_out_all**2)))
+
+	def plotModel(self):
+		if not self.component_wise:
+			return
+
+		x_input = np.copy(self.x_vec)
+		x_output = np.copy(self.xdot_vec)
+		x_input_descaled = self.scaler.descaleData(x_input)
+		if self.usef0:
+			predf0 = self.scaler.scaleXdot(np.array([self.f0(0, x_input_descaled[i]) for i in range(x_input.shape[0])]))
+		if self.rf_error_input:
+			rf_input = np.hstack((x_input, predf0))
+		else:
+			rf_input = x_input
+		if self.doResidual:
+			x_output -= predf0
+
+		x_grid = np.arange(-8,13,0.01)
+		x_grid_scaled_mat = self.scaler.scaleData(x_grid, reuse=1)[None,:]
+		bh_mat = np.tile(self.b_h_markov, len(x_grid))
+		hY = self.W_out_markov @ np.tanh(self.W_in_markov @ x_grid_scaled_mat + bh_mat)
+
+		fig_path = os.path.join(self.fig_dir, "model_plot.png")
+		fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(12, 12))
+
+		ax.plot(x_grid, np.squeeze(hY), color='blue')
+		ax.scatter(x_input_descaled.reshape(-1), x_output.reshape(-1))
+		ax.set_xlabel('X_k')
+		ax.set_ylabel('hY')
+		plt.suptitle('Model Fit')
+		plt.savefig(fig_path)
+		plt.close()
 
 	def saveModel(self):
 		# print("Recording time...")
