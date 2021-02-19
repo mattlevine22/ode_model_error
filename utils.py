@@ -57,10 +57,10 @@ def prioritized_job_sender(all_job_fnames, bash_command, list_of_priorities, do_
         rmv_nms = []
         for job_fname in all_job_fnames:
             eval_nm = os.path.join(os.path.basename(job_fname), 'test_eval.pickle')
+            pdb.set_trace()
             if noredo and os.path.isfile(eval_nm):
                 rmv_nms.append(job_fname)
-                continue
-            if all(elem in job_fname for elem in check_list):
+            elif all(elem in job_fname for elem in check_list):
                 rmv_nms.append(job_fname)
                 submit_job(job_fname, bash_command=bash_command)
         [all_job_fnames.remove(nm) for nm in rmv_nms]
