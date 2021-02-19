@@ -48,6 +48,24 @@ def df_eval(df):
     final_df = pd.concat(df_list)
     return final_df
 
+def prioritized_job_sender(all_job_fnames, bash_command, list_of_priorities, do_all=False, noredo=True):
+
+    if do_all:
+        list_of_priorities.append(['']) # this includes all remaining things at the end
+
+    for check_list in list_of_priorities:
+        rmv_nms = []
+        for job_fname in all_job_fnames:
+            eval_nm = os.path.join(os.path.basename(job_fname), 'test_eval.pickle')
+            if noredo and os.path.isfile(eval_nm):
+                rmv_nms.append(job_fname)
+                continue
+            if all(elem in job_fname for elem in check_list):
+                rmv_nms.append(job_fname)
+                submit_job(job_fname, bash_command=bash_command)
+        [all_job_fnames.remove(nm) for nm in rmv_nms]
+
+    return
 
 def queue_joblist(combined_settings, shared_settings, output_dir, master_job_file, cmd, hours=12, conda_env=None):
     nm_list = combined_settings.keys()

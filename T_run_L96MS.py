@@ -151,23 +151,6 @@ def declare_jobs(data_pathname, datagen_settings, output_dir, master_job_file, c
 
     return all_job_fnames, combined_settings
 
-def prioritized_job_sender(all_job_fnames, bash_command, list_of_priorities, do_all=False):
-
-    if do_all:
-        list_of_priorities.append(['']) # this includes all remaining things at the end
-
-    for check_list in list_of_priorities:
-        rmv_nms = []
-        for job_fname in all_job_fnames:
-            if all(elem in job_fname for elem in check_list):
-                rmv_nms.append(job_fname)
-                submit_job(job_fname, bash_command=bash_command)
-        [all_job_fnames.remove(nm) for nm in rmv_nms]
-
-    if do_all and len(all_job_fnames):
-        [submit_job(j, bash_command=bash_command) for j in all_job_fnames]
-
-    return
 
 def init_summary_df(combined_settings, all_job_fnames):
     fidelity_list = ['Euler', 'default', 'lowfi', 'medfi', 'hifi', 'hifiPlus']
