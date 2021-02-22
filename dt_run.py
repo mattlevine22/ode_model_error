@@ -14,7 +14,7 @@ parser.add_argument('--mode', default='all', type=str)
 parser.add_argument('--datagen', default=1, type=int)
 parser.add_argument('--regen', default=0, type=int)
 parser.add_argument('--cmd_py', default='python3 main.py', type=str)
-parser.add_argument('--output_dir', default='/groups/astuart/mlevine/ode_model_error/experiments/l63eps_v5_dt_validateReg/', type=str)
+parser.add_argument('--output_dir', default='/groups/astuart/mlevine/ode_model_error/experiments/l63eps_v5_dt_validateReg2/', type=str)
 parser.add_argument('--cmd_job', default='bash', type=str)
 parser.add_argument('--conda_env', default='', type=str)
 parser.add_argument('--hours', default=2, type=int)
@@ -61,8 +61,7 @@ def main(cmd_py, output_dir, cmd_job, datagen, conda_env, **kwargs):
             pickle.dump(summary_df, file, pickle.HIGHEST_PROTOCOL)
 
     if kwargs['mode']=='all':
-        lop = [['dt-0.0005'],
-                ['trainNumber-0']
+        lop = [['trainNumber-0']
                ]
         prioritized_job_sender(all_job_fnames,
                                 bash_command=cmd_job,
@@ -79,14 +78,13 @@ def declare_jobs(data_pathname, datagen_settings, output_dir, master_job_file, c
                         't_test': 20}
 
     f0eps_list = [0.05]
-    dt_list = [0.0001, 0.0005, 0.001, 0.01, 0.025, 0.05, 0.1, 0.2, 0.5, 1.0]
+    dt_list = [0.001, 0.01, 0.025, 0.05, 0.1, 0.2, 0.5, 1.0]
 
     ## rhs runs
     combined_settings = { 'modelType': ['rhs'],
                  'diff': ['TrueDeriv','Euler', 'Spline'],
                  'costIntegration': ['datagrid', 'interp'],
-                 'NTrain': [100/0.01],
-                 'useNTrain': [1],
+                 'tTrain': [1000],
                  'usef0': [0],
                  'doResidual': [0],
                  'stateType': ['state'],
@@ -153,7 +151,7 @@ def declare_jobs(data_pathname, datagen_settings, output_dir, master_job_file, c
     return all_job_fnames, combined_settings
 
 def init_summary_df(combined_settings, all_job_fnames):
-    fidelity_list = ['Euler', 'default', 'lowfi', 'medfi', 'hifi', 'hifiPlus']
+    fidelity_list = ['hifi', 'hifiPlus']
     summary_df = pd.DataFrame()
     my_vars = list(combined_settings.keys())
     for jobfile_path in all_job_fnames:
