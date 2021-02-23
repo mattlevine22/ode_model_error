@@ -71,7 +71,7 @@ class IDK(object):
 		# for now, ignore the fixed test dt and test at training data dt
 		self.dt_test = self.dt
 
-		self.scaler = scaler(tt=self.scaler_tt, tt_derivative=self.scaler_tt_derivatives, component_wise=self.component_wise)
+		self.scaler = scaler(tt=self.scaler_tt, tt_derivative=self.scaler_tt_derivatives, component_wise=self.componentWise)
 		self.fig_dir = os.path.join(self.saving_path, params["fig_dir"])
 		self.model_dir = os.path.join(self.saving_path, params["model_dir"])
 		self.logfile_dir = os.path.join(self.saving_path, params["logfile_dir"])
@@ -107,7 +107,7 @@ class IDK(object):
 			self.fTRUE = params["fTRUE"]
 
 		# count the augmented input dimensions (i.e. [x(t); f0(x(t))-x(t)])
-		if self.component_wise:
+		if self.componentWise:
 			self.input_dim_rf = 1 + self.rf_error_input
 			self.output_dim_rf = 1
 		else:
@@ -282,7 +282,7 @@ class IDK(object):
 		elif ('datagrid' in self.costIntegration) or ('Psi' in self.modelType):
 			rf_input, x_output, x_input_descaled = self.get_regression_IO()
 			if 'GP' in self.modelType:
-				if self.component_wise:
+				if self.componentWise:
 					raise ValueError('component wise not yet set up for Euler')
 				GP_ker = ConstantKernel(1.0, (1e-5, 1e5)) * RBF(1.0, (1e-10, 1e+6)) + WhiteKernel(1.0, (1e-10, 1e6))
 				my_gpr = GaussianProcessRegressor(
@@ -292,7 +292,7 @@ class IDK(object):
 				self.gpr = my_gpr.fit(X=rf_input, y=x_output)
 			else:
 				self.set_random_weights()
-				if self.component_wise:
+				if self.componentWise:
 					Y = []
 					Z = []
 					for k in range(self.input_dim):
@@ -316,7 +316,7 @@ class IDK(object):
 				print('|Y| =', np.mean(self.Y**2))
 
 	def test(self):
-		for fidelity in ['hifi', 'Euler', 'hifiPlus']:
+		for fidelity in ['hifi', 'hifiPlus']:
 			self.set_fidelity(fidelity)
 
 			# evaluate trajectory performance
@@ -454,7 +454,7 @@ class IDK(object):
 			else:
 				pred = np.zeros(self.input_dim)
 
-			if self.component_wise:
+			if self.componentWise:
 				for k in range(self.input_dim):
 					if self.rf_error_input:
 						rf_input = np.hstack((x_input[k,None], pred[k,None]))
@@ -498,7 +498,7 @@ class IDK(object):
 				return f0
 
 		f_error_markov = np.zeros(self.input_dim)
-		if self.component_wise:
+		if self.componentWise:
 			for k in range(self.input_dim):
 				if self.rf_error_input:
 					rf_input = np.hstack((x_input[k,None], f0[k,None]))
@@ -729,14 +729,14 @@ class IDK(object):
 		x = self.x_t(t=t)
 		xdot = self.xdot_t(t=t)
 		m = self.mscaled(t, x, xdot)
-		if self.component_wise:
+		if self.componentWise:
 			x = x[k,None]
 			xdot = xdot[k,None]
 			m = m[k,None]
 
 		if self.rf_error_input:
 			f0 = self.scaler.scaleXdot(self.f0(t, self.scaler.descaleData(x)))
-			if self.component_wise:
+			if self.componentWise:
 				f0 = f0[k,None]
 			rf_input = np.hstack((x,f0))
 		else:
@@ -781,7 +781,7 @@ class IDK(object):
 		T_train = self.tTrain
 		t_span = [T_warmup, T_warmup + T_train]
 
-		if self.component_wise:
+		if self.componentWise:
 			self.Y = []
 			self.Z = []
 			for k in range(self.input_dim):
@@ -799,7 +799,7 @@ class IDK(object):
 
 	def getYZ(self, t_span, k=None):
 		timer_start = time.time()
-		if self.component_wise:
+		if self.componentWise:
 			y0 = np.zeros(self.rfDim**2 + self.rfDim)
 		else:
 			y0 = np.zeros(self.rfDim**2 + self.rfDim*self.input_dim)
@@ -828,7 +828,7 @@ class IDK(object):
 
 	def newMethod_saveYZ(self, yend, T_train):
 
-		if self.component_wise:
+		if self.componentWise:
 			in_dim = 1
 		else:
 			in_dim = self.input_dim
@@ -839,7 +839,7 @@ class IDK(object):
 		Y = Yq.reshape(self.rfDim, in_dim)
 
 		# save Time-Normalized Y,Z
-		if self.component_wise:
+		if self.componentWise:
 			self.Y.append(Y / T_train)
 			self.Z.append(Z / T_train)
 		else:
@@ -857,7 +857,7 @@ class IDK(object):
 			regI = np.identity(self.reg_dim)
 			regI *= self.regularization_RF
 
-			if self.component_wise:
+			if self.componentWise:
 				# stack regI K times
 				regI = np.tile(regI,(self.input_dim,1))
 
@@ -907,7 +907,7 @@ class IDK(object):
 			if self.doResidual and (x_output is not None):
 				x_output -= predf0
 
-		if self.component_wise:
+		if self.componentWise:
 			rf_input = []
 			for k in range(self.input_dim):
 				if self.rf_error_input:
@@ -928,7 +928,7 @@ class IDK(object):
 
 	def plotModel(self):
 
-		if not self.component_wise:
+		if not self.componentWise:
 			return
 
 		rf_input, x_output, x_input_descaled = self.get_regression_IO()
