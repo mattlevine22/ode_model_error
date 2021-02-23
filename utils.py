@@ -276,7 +276,7 @@ def generate_data(ode,
         return u
 
     # make 1 long inv-meas trajectory
-    u_inv_meas = simulate_traj(T1=t_transient, T2=t_invariant_measure)
+    u_inv_meas = np.array([simulate_traj(T1=t_transient, T2=t_invariant_measure) for _ in range(1)])
 
     # make many training trajectories
     u_train = np.array([simulate_traj(T1=t_transient, T2=t_train) for _ in range(n_train_traj)])
