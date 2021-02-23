@@ -219,7 +219,7 @@ def run_summary(output_dir):
     with open(summary_df_name, "rb") as file:
         summary_df = pickle.load(file)
     summary_df = df_eval(df=summary_df)
-    metric_list = ['t_valid_005', 'differentiation_error', 'regularization_RF', 'kl_all', 'acf_err']
+    metric_list = ['t_valid_005', 'differentiation_error', 'regularization_RF', 'kl_all', 'acf_error']
 
     # subset summary
     # summary_df = summary_df[(summary_df.modelType!='Psi')]
@@ -247,7 +247,6 @@ def run_summary(output_dir):
                     plot_output_dir = os.path.join(output_dir, 'summary_tTrain_plotsLEGIBLE_dt{dt}_fid{fid}_rfDim{rfDim}'.format(dt=dt, fid=fid, rfDim=rfDim))
                     os.makedirs(plot_output_dir, exist_ok=True)
                     try:
-                        pdb.set_trace()
                         box(df=sub_df[sub_df.rhsname.isin(rhsname_list)], x="longname", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='box_legible_{}')
                         summarize(df=sub_df[sub_df.rhsname.isin(rhsname_list)], style='type', hue='rhsname', x="tTrain", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='tTrain_legible_{}')
                         summarize(df=sub_df, style='type', hue='rhsname', x="tTrain", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='tTrain_{}')
