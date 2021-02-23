@@ -11,6 +11,8 @@ from scipy.interpolate import CubicSpline
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF, Matern, WhiteKernel, ConstantKernel
 
+from statsmodels.tsa.stattools import acf
+
 # from scipy.stats import loguniform
 import time
 from functools import partial
@@ -273,62 +275,15 @@ class IDK(object):
 
 
 	def setup_the_learning(self):
-		tl = self.x_vec.shape[0] - self.dynamics_length
 
-		if 'rhs' in self.modelType:
-			if 'interp' in self.costIntegration:
-				## Random WEIGHTS
-				self.set_random_weights()
-				self.continuousInterpRF()
-			elif 'datagrid' in self.costIntegration:
+		if ('rhs' in self.modelType) and ('interp' in self.costIntegration):
+			self.set_random_weights()
+			self.continuousInterpRF()
+		elif ('datagrid' in self.costIntegration) or ('Psi' in self.modelType):
+			rf_input, x_output, x_input_descaled = self.get_regression_IO()
+			if 'GP' in self.modelType:
 				if self.component_wise:
 					raise ValueError('component wise not yet set up for Euler')
-				x_input = np.copy(self.x_vec)
-				x_output = np.copy(self.xdot_vec)
-				x_input_descaled = self.scaler.descaleData(x_input)
-
-				if self.usef0:
-					predf0 = self.scaler.scaleXdot(np.array([self.f0(0, x_input_descaled[i]) for i in range(x_input.shape[0])]))
-				if self.rf_error_input:
-					rf_input = np.hstack((x_input, predf0))
-				else:
-					rf_input = x_input
-				if self.doResidual:
-					x_output -= predf0
-
-				if 'GP' in self.modelType:
-					GP_ker = ConstantKernel(1.0, (1e-5, 1e5)) * RBF(1.0, (1e-10, 1e+6)) + WhiteKernel(1.0, (1e-10, 1e6))
-					my_gpr = GaussianProcessRegressor(
-						kernel = GP_ker,
-						n_restarts_optimizer = 15,
-						alpha = 1e-10)
-					self.gpr = my_gpr.fit(X=rf_input, y=x_output)
-				else:
-					self.set_random_weights()
-					Q = np.array([self.q_t(rf_input[i]) for i in range(rf_input.shape[0])])
-					self.Z = Q.T @ Q / x_input.shape[0] # normalize by length
-					self.Y = Q.T @ x_output / x_input.shape[0]
-					self.reg_dim = self.Z.shape[0]
-					print('|Z| =', np.mean(self.Z**2))
-					print('|Y| =', np.mean(self.Y**2))
-
-		elif 'Psi' in self.modelType:
-			if self.component_wise:
-				raise ValueError('component wise not yet set up for discrete')
-			x_output = np.copy(self.x_vec[1:])
-			x_input = np.copy(self.x_vec[:-1])
-			x_input_descaled = self.scaler.descaleData(x_input)
-
-			if self.usef0:
-				predf0 = self.scaler.scaleData(np.array([self.psi0(x_input_descaled[i]) for i in range(x_input.shape[0])]), reuse=1)
-			if self.rf_error_input:
-				rf_input = np.hstack((x_input, predf0))
-			else:
-				rf_input = x_input
-			if self.doResidual:
-				x_output -= predf0
-
-			if 'GP' in self.modelType:
 				GP_ker = ConstantKernel(1.0, (1e-5, 1e5)) * RBF(1.0, (1e-10, 1e+6)) + WhiteKernel(1.0, (1e-10, 1e6))
 				my_gpr = GaussianProcessRegressor(
 					kernel = GP_ker,
@@ -337,20 +292,36 @@ class IDK(object):
 				self.gpr = my_gpr.fit(X=rf_input, y=x_output)
 			else:
 				self.set_random_weights()
-				Q = np.array([self.q_t(rf_input[i]) for i in range(rf_input.shape[0])])
-				self.Z = Q.T @ Q / x_input.shape[0] # normalize by length
-				self.Y = Q.T @ x_output / x_input.shape[0]
-				self.reg_dim = self.Z.shape[0]
+				if self.component_wise:
+					Y = []
+					Z = []
+					for k in range(self.input_dim):
+						# allocate, reshape, normalize, and save solutions
+						Q = np.array([self.q_t(rf_input[k,i]) for i in range(rf_input.shape[1])])
+						Z.append(Q.T @ Q)
+						Y.append((Q.T @ x_output[k])[:,None])
+						self.reg_dim = Q.shape[1]
+					self.Y = np.vstack(Y)
+					self.Z = np.vstack(Z)
+				else:
+					# allocate, reshape, normalize, and save solutions
+					Q = np.array([self.q_t(rf_input[i]) for i in range(rf_input.shape[0])])
+					self.Z = Q.T @ Q
+					self.Y = Q.T @ x_output
+					self.reg_dim = self.Z.shape[0]
+
+				self.Z /= x_input_descaled.shape[0]
+				self.Y /= x_input_descaled.shape[0]
 				print('|Z| =', np.mean(self.Z**2))
 				print('|Y| =', np.mean(self.Y**2))
 
-		# Store something useful for plotting
-		# self.first_train_vec = train_input_sequence[(self.dynamics_length+1),:]
-
 	def test(self):
-		for fidelity in ['hifi', 'Euler', 'lowfi', 'medfi', 'hifiPlus']:
+		for fidelity in ['hifi', 'Euler', 'hifiPlus']:
 			self.set_fidelity(fidelity)
-			test_eval = self.testingOnSet(setnm='test', fidelity_name=fidelity)
+
+			# evaluate trajectory performance
+			test_eval = self.testingOnSet(setnm='test', fidelity_name=fidelity, do_inv=True)
+
 			self.write_stats(pd_stat=test_eval, stat_name='test_eval_{}'.format(fidelity))
 			if fidelity=='hifi':
 				self.write_stats(pd_stat=test_eval, stat_name='test_eval')
@@ -385,7 +356,7 @@ class IDK(object):
 		return quality
 
 
-	def testingOnSet(self, setnm, do_plots=True, fidelity_name=''):
+	def testingOnSet(self, setnm, do_plots=True, fidelity_name='', do_inv=False):
 		with open(self.test_data_path, "rb") as file:
 			data = pickle.load(file)
 			self.dt_rawdata = data["dt"]
@@ -398,16 +369,31 @@ class IDK(object):
 		print('Evaluating', n_traj, setnm, 'sets')
 		for n in range(n_traj):
 			test_input_sequence = self.subsample(x=eval_data[n], t_end=self.t_test, dt_subsample=self.dt_test)
-			eval_dict = self.eval(input_sequence=test_input_sequence, t_end=self.t_test, set_name=setnm+fidelity_name+str(n), do_plots=do_plots)
+			eval_dict = self.eval(input_sequence=test_input_sequence, t_end=self.t_test, set_name=setnm+fidelity_name+str(n), traj_plots=do_plots, inv_plots=False)
 			test_eval.append(eval_dict)
 
 		# regroup test_eval
 		test_eval = pd.DataFrame(test_eval)
 
+		if do_inv:
+			setnm = "inv_meas"
+			with open(self.test_data_path, "rb") as file:
+				data = pickle.load(file)
+				self.dt_rawdata = data["dt"]
+				inv_data = data["u_{}".format(setnm)][0, :, :self.input_dim]
+				del data
+
+			print('Evaluating', setnm, 'set')
+			inv_input_sequence = self.subsample(x=inv_data, t_end=self.t_inv, dt_subsample=self.dt_test)
+			inv_dict = self.eval(input_sequence=inv_input_sequence, t_end=self.t_inv, set_name=setnm+fidelity_name, traj_plots=False, inv_plots=do_plots, inv_stats=True)
+
+		for key in ["kl_all", "kl_mean", "acf_error"]:
+			test_eval[key] = inv_dict[key]
+
 		return test_eval
 		# rmnse_avg, num_accurate_pred_005_avg, num_accurate_pred_050_avg, error_freq, predictions_all, truths_all, freq_pred, freq_true, sp_true, sp_pred, hidden_all = self.eval(test_input_sequence, dt, "TEST")
 
-	def eval(self, input_sequence, t_end, set_name, do_plots=True):
+	def eval(self, input_sequence, t_end, set_name, traj_plots=True, inv_plots=False, inv_stats=False):
 		# allocate ic and target
 		ic = self.scaler.scaleData(input_sequence[0], reuse=1)
 		target = input_sequence
@@ -425,8 +411,12 @@ class IDK(object):
 		except:
 			pass
 
-		if do_plots:
-			self.makeNewPlots(true_traj=target, predicted_traj=prediction, set_name=set_name)
+		if traj_plots:
+			self.makeTrajPlots(true_traj=target, predicted_traj=prediction, set_name=set_name)
+
+		if inv_stats:
+			self.saveInvStats(true_traj=target, predicted_traj=prediction, set_name=set_name, eval_dict=eval_dict)
+
 		return eval_dict
 
 	def make_predictions(self, ic, t_end):
@@ -456,19 +446,33 @@ class IDK(object):
 
 	def predict_next(self, x_input, t0=0):
 		u_next = np.zeros(self.input_dim)
+
+
 		if 'Psi' in self.modelType:
 			if self.doResidual or self.usef0:
 				pred = self.scaler.scaleData(self.psi0(self.scaler.descaleData(x_input)), reuse=1)
 			else:
-				pred = 0
-			if self.rf_error_input:
-				rf_input = np.hstack((x_input, pred))
+				pred = np.zeros(self.input_dim)
+
+			if self.component_wise:
+				for k in range(self.input_dim):
+					if self.rf_error_input:
+						rf_input = np.hstack((x_input[k,None], pred[k,None]))
+					else:
+						rf_input = x_input[k,None]
+					if 'GP' in self.modelType:
+						u_next[k] = pred[k] + self.gpr.predict(rf_input)
+					else:
+						u_next[k] = pred[k] + self.W_out_markov @ self.q_t(rf_input)
 			else:
-				rf_input = x_input
-			if 'GP' in self.modelType:
-				u_next = pred + self.gpr.predict(rf_input)
-			else:
-				u_next = pred + self.W_out_markov @ self.q_t(rf_input)
+				if self.rf_error_input:
+					rf_input = np.hstack((x_input, pred))
+				else:
+					rf_input = x_input
+				if 'GP' in self.modelType:
+					u_next = pred + self.gpr.predict(rf_input)
+				else:
+					u_next = pred + self.W_out_markov @ self.q_t(rf_input)
 		elif 'rhs' in self.modelType:
 			t_span = [t0, t0+self.dt]
 			t_eval = np.array([t0+self.dt])
@@ -483,6 +487,9 @@ class IDK(object):
 	def rhs(self, t0, u0):
 		#u0 is in normalized coordinates but dx is in UNnormalized coordinates
 		x_input = u0[:self.input_dim]
+
+		# pdb.set_trace()
+		# rf_input_NEW, _, x_input_descaled_NEW = self.get_regIO(x_input=x_input)
 
 		# add mechanistic rhs
 		if self.usef0:
@@ -527,7 +534,7 @@ class IDK(object):
 			plt.close()
 
 
-	def makeNewPlots(self, true_traj, predicted_traj, set_name=''):
+	def makeTrajPlots(self, true_traj, predicted_traj, set_name=''):
 		n_times = true_traj.shape[0] # self.X
 		time_vec = np.arange(n_times)*self.dt
 		mse = np.mean( (true_traj - predicted_traj)**2)
@@ -553,6 +560,96 @@ class IDK(object):
 		plt.suptitle('Timewise errors with total MSE {mse:.5}'.format(mse=mse))
 		plt.savefig(fig_path)
 		plt.close()
+
+	def saveInvStats(self, true_traj, predicted_traj, eval_dict, set_name=''):
+		T_acf = 10
+		nlags = int(T_acf/self.dt) - 1
+		acfgrid = np.arange(0, T_acf, self.dt)
+
+		if self.f0_name=='L63':
+			ncols = self.input_dim
+			data = []
+			for k in range(self.input_dim):
+				# INVARIANT MEASURE
+				xgrid, Papprox, Ptrue = kdegrid(Xtrue=true_traj[:,k], Xapprox=predicted_traj[:,k], kde_func=kde_scipy, gridsize=1000)
+
+				# AUTOCORRELATION FUNCTION
+				acfapprox = acf(predicted_traj[:,k], fft=True, nlags=nlags) #look at first component
+				acftrue = acf(true_traj[:,k], fft=True, nlags=nlags) #look at first component
+				acferr = np.mean((acftrue - acfapprox)**2)
+
+				data.append({"xgrid": xgrid,
+							"P_approx": Papprox,
+							"P_true": Ptrue,
+							"acf_grid": acfgrid,
+							"acf_approx": acfapprox,
+							"acf_true": acftrue,
+							"acf_err": acferr})
+
+
+				fig_path = os.path.join(self.fig_dir, "kde_{}.png".format(set_name))
+				fig, ax = plt.subplots(nrows=1, ncols=ncols,figsize=(24, 12))
+				for k in range(ncols):
+					sns.kdeplot(true_traj[:,k], ax=ax[k], label='True', linewidth=2)
+					sns.kdeplot(predicted_traj[:,k], ax=ax[k], label='Predicted', linewidth=2)
+					ax[k].set_ylabel("Probability", fontsize=12)
+				ax[-1].legend()
+				plt.suptitle('KDE with KL-Divergence={kl:.5}'.format(kl=eval_dict['kl_all']))
+				plt.savefig(fig_path)
+				plt.close()
+
+				fig_path = os.path.join(self.fig_dir, "acf_{}.png".format(set_name))
+				fig, ax = plt.subplots(nrows=ncols, ncols=1,figsize=(14, 8))
+				for k in range(ncols):
+					ax[k].plot(acfgrid, acftrue, label='True', linewidth=2)
+					ax[k].plot(acfgrid, acfapprox, label='Predicted', linewidth=2)
+					ax[k].set_ylabel("ACF", fontsize=12)
+				ax[-1].legend()
+				plt.suptitle('ACF with error={acf:.5}'.format(acf=acferr))
+				plt.savefig(fig_path)
+				plt.close()
+
+		elif self.f0_name=='L96M':
+			# INVARIANT MEASURE
+			xgrid, Papprox, Ptrue = kdegrid(Xtrue=true_traj.reshape(-1), Xapprox=predicted_traj.reshape(-1), kde_func=kde_scipy, gridsize=1000)
+
+			# AUTOCORRELATION FUNCTION
+			acfapprox = acf(predicted_traj[:,0], fft=True, nlags=nlags) #look at first component
+			acftrue = acf(true_traj[:,0], fft=True, nlags=nlags) #look at first component
+			acferr = np.mean((acftrue - acfapprox)**2)
+
+
+			data = [{"xgrid": xgrid,
+						"P_approx": Papprox,
+						"P_true": Ptrue,
+						"acf_grid": acfgrid,
+						"acf_approx": acfapprox,
+						"acf_true": acftrue,
+						"acf_err": acferr
+					}]
+
+			fig_path = os.path.join(self.fig_dir, "kde_{}.png".format(set_name))
+			fig, ax = plt.subplots(nrows=1, ncols=1,figsize=(12, 12))
+			sns.kdeplot(true_traj.reshape(-1), ax=ax, label='True', linewidth=2)
+			sns.kdeplot(predicted_traj.reshape(-1), ax=ax, label='Predicted', linewidth=2)
+			ax.set_ylabel("Probability", fontsize=12)
+			ax.legend()
+			plt.suptitle('KDE with KL-Divergence={kl:.5}'.format(kl=eval_dict['kl_all']))
+			plt.savefig(fig_path)
+			plt.close()
+
+			fig_path = os.path.join(self.fig_dir, "acf_{}.png".format(set_name))
+			fig, ax = plt.subplots(nrows=1, ncols=1,figsize=(12, 12))
+			ax.plot(acfgrid, acftrue, label='True', linewidth=2)
+			ax.plot(acfgrid, acfapprox, label='Predicted', linewidth=2)
+			ax.set_ylabel("ACF", fontsize=12)
+			ax.legend()
+			plt.suptitle('ACF with error={acf:.5}'.format(acf=acferr))
+			plt.savefig(fig_path)
+			plt.close()
+
+
+		self.write_stats(data, "kde_data_{}".format(set_name))
 
 	def testingOnTrainingSet(self):
 		with open(self.train_data_path, "rb") as file:
@@ -777,32 +874,78 @@ class IDK(object):
 			mse = np.mean(res**2)
 			print('Inversion MSE for lambda_RF={lrf} is {mse} with normalized |Wout|={nrm}'.format(lrf=self.regularization_RF, mse=mse, nrm=np.mean(W_out_all**2)))
 
+	def get_regression_IO(self):
+
+		if 'Psi' in self.modelType:
+			x_input = np.copy(self.x_vec[:-1])
+			x_output = np.copy(self.x_vec[1:])
+			x_input_descaled = self.scaler.descaleData(x_input)
+		elif 'rhs' in self.modelType:
+			x_input = np.copy(self.x_vec)
+			x_output = np.copy(self.xdot_vec)
+			x_input_descaled = self.scaler.descaleData(x_input)
+		else:
+			raise ValueError('Did not reecognize self.modelType')
+
+		rf_input, x_output, x_input_descaled = self.get_regIO(x_input=x_input, x_output=x_output)
+
+		return rf_input, x_output, x_input_descaled
+
+
+	def get_regIO(self, x_input, x_output=None):
+		x_input_descaled = self.scaler.descaleData(x_input)
+
+		if self.usef0:
+			if 'Psi' in self.modelType:
+				predf0 = self.scaler.scaleData(np.array([self.psi0(x_input_descaled[i]) for i in range(x_input.shape[0])]), reuse=1)
+			elif 'rhs' in self.modelType:
+				predf0 = self.scaler.scaleXdot(np.array([self.f0(0, x_input_descaled[i]) for i in range(x_input.shape[0])]))
+			else:
+				raise ValueError('Did not reecognize self.modelType')
+
+			# subtract residual
+			if self.doResidual and (x_output is not None):
+				x_output -= predf0
+
+		if self.component_wise:
+			rf_input = []
+			for k in range(self.input_dim):
+				if self.rf_error_input:
+					rf_input_k = np.hstack((x_input[:,k,None], predf0[:,k,None]))
+				else:
+					rf_input_k = x_input[:,k,None]
+				rf_input.append(rf_input_k)
+			rf_input = np.array(rf_input)
+			if x_output is not None:
+				x_output = x_output.T
+		else:
+			if self.rf_error_input:
+				rf_input = np.hstack((x_input, predf0))
+			else:
+				rf_input = x_input
+
+		return rf_input, x_output, x_input_descaled
+
 	def plotModel(self):
+
 		if not self.component_wise:
 			return
 
-		x_input = np.copy(self.x_vec)
-		x_output = np.copy(self.xdot_vec)
-		x_input_descaled = self.scaler.descaleData(x_input)
-		if self.usef0:
-			predf0 = self.scaler.scaleXdot(np.array([self.f0(0, x_input_descaled[i]) for i in range(x_input.shape[0])]))
-		if self.rf_error_input:
-			rf_input = np.hstack((x_input, predf0))
-		else:
-			rf_input = x_input
-		if self.doResidual:
-			x_output -= predf0
+		rf_input, x_output, x_input_descaled = self.get_regression_IO()
 
 		x_grid = np.arange(-8,13,0.01)
 		x_grid_scaled_mat = self.scaler.scaleData(x_grid, reuse=1)[None,:]
 		bh_mat = np.tile(self.b_h_markov, len(x_grid))
 		hY = self.W_out_markov @ np.tanh(self.W_in_markov @ x_grid_scaled_mat + bh_mat)
+		if 'Psi' in self.modelType:
+			x_output /= self.dt
+			hY /= self.dt
 
 		fig_path = os.path.join(self.fig_dir, "model_plot.png")
 		fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(12, 12))
 
-		ax.plot(x_grid, np.squeeze(hY), color='blue')
-		ax.scatter(x_input_descaled.reshape(-1), x_output.reshape(-1))
+		ax.plot(x_grid, np.squeeze(hY), color='blue', linewidth=4)
+		ax.scatter(x_input_descaled.reshape(-1), x_output.T.reshape(-1))
 		ax.set_xlabel('X_k')
 		ax.set_ylabel('hY')
 		plt.suptitle('Model Fit')
