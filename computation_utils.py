@@ -3,6 +3,9 @@ import numpy as np
 import pickle
 import io
 import os
+from scipy.stats import gaussian_kde, entropy
+from statsmodels.tsa.stattools import acf
+
 import pdb
 
 def matt_xcorr(x, y):
@@ -25,7 +28,32 @@ def replaceNaN(data):
 	data[np.isnan(data)]=float('Inf')
 	return data
 
-def computeErrors(target, prediction, std, dt):
+def kde_scipy(x, x_grid, **kwargs):
+	"""Kernel Density Estimation with Scipy"""
+	# Note that scipy weights its bandwidth by the covariance of the
+	# input data.  To make the results comparable to the other methods,
+	# we divide the bandwidth by the sample standard deviation here.
+	kde = gaussian_kde(x, **kwargs)
+	return kde.evaluate(x_grid)
+
+def kl4dummies(Xtrue, Xapprox, kde_func=kde_scipy, gridsize=1000):
+	# arrays are identical and KL-div is 0
+	if np.array_equal(Xtrue, Xapprox):
+		return 0
+	# compute KL-divergence
+	x_grid, Pk, Qk = kdegrid(Xtrue, Xapprox, kde_func=kde_scipy, gridsize=gridsize)
+	kl = entropy(Pk, Qk) # compute Dkl(P | Q)
+	return kl
+
+def kdegrid(Xtrue, Xapprox, kde_func=kde_scipy, gridsize=1000):
+	zmin = min(min(Xtrue), min(Xapprox))
+	zmax = max(max(Xtrue), max(Xapprox))
+	x_grid = np.linspace(zmin, zmax, gridsize)
+	Pk = kde_func(Xapprox.astype(np.float), x_grid) # P is approx dist
+	Qk = kde_func(Xtrue.astype(np.float), x_grid) # Q is reference dist
+	return x_grid, Pk, Qk
+
+def computeErrors(target, prediction, std, dt, do_inv=True):
 	prediction = replaceNaN(prediction)
 	# ABSOLUTE ERROR
 	abserror = np.mean(np.abs(target-prediction), axis=1)
@@ -49,9 +77,25 @@ def computeErrors(target, prediction, std, dt):
 	t_valid_005 = dt*num_accurate_pred_005
 	t_valid_050 = dt*num_accurate_pred_050
 
+	kl_div_all = np.nan
+	kl_div_mean = np.nan
+	acf_error = np.nan
+	if do_inv:
+		## kl-divergence between 1D invariant measures
+		 # (assume all states are statistically the same and can be pooled)
+		kl_all = kl4dummies(Xtrue=target.reshape(-1), Xapprox=prediction.reshape(-1), gridsize=512)
+		 # (average 1d KL )
+		kl_mean = np.mean([kl4dummies(Xtrue=target[:,i], Xapprox=prediction[:,i], gridsize=512) for i in range(target.shape[1])])
+
+		T_acf = 10
+		nlags = int(T_acf/dt) - 1
+		acf_approx = acf(prediction[:,0], fft=True, nlags=nlags) #look at first component
+		acf_true = acf(target[:,0], fft=True, nlags=nlags) #look at first component
+		acf_error = np.mean((acf_true - acf_approx)**2)
+
 	eval_dict = {}
 	# for var_name in ['rmse_total', 'rmse', 'rmnse', 'num_accurate_pred_005', 'num_accurate_pred_050', 'abserror']:
-	for var_name in ['rmse_total', 't_valid_005', 't_valid_050']:
+	for var_name in ['rmse_total', 't_valid_005', 't_valid_050', 'kl_all', 'kl_mean', 'acf_error']:
 		exec("eval_dict['{key}'] = {val}".format(key=var_name, val=var_name))
 	return eval_dict
 
