@@ -330,7 +330,7 @@ class IDK(object):
 
 	def validate(self):
 		# self.testingOnTrainingSet()
-		validate_eval = self.testingOnSet(setnm='validate', do_plots=False)
+		validate_eval = self.testingOnSet(setnm='validate', do_plots=False, do_inv=False)
 		print('Mean:\n', validate_eval.mean())
 		# print('SD:', validate_eval.std())
 		return validate_eval
@@ -387,8 +387,8 @@ class IDK(object):
 			inv_input_sequence = self.subsample(x=inv_data, t_end=self.t_inv, dt_subsample=self.dt_test)
 			inv_dict = self.eval(input_sequence=inv_input_sequence, t_end=self.t_inv, set_name=setnm+fidelity_name, traj_plots=False, inv_plots=do_plots, inv_stats=True)
 
-		for key in ["kl_all", "kl_mean", "acf_error"]:
-			test_eval[key] = inv_dict[key]
+			for key in ["kl_all", "kl_mean", "acf_error"]:
+				test_eval[key] = inv_dict[key]
 
 		return test_eval
 		# rmnse_avg, num_accurate_pred_005_avg, num_accurate_pred_050_avg, error_freq, predictions_all, truths_all, freq_pred, freq_true, sp_true, sp_pred, hidden_all = self.eval(test_input_sequence, dt, "TEST")
