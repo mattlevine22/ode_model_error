@@ -177,6 +177,8 @@ def init_summary_df(combined_settings, all_job_fnames):
             var_dict['type'] = 'resid={}, {}'.format(var_dict['doResidual'], var_dict['stateType'])
             var_dict['rhsname'] = 'Psi'
 
+        var_dict['longname'] = var_dict['rhsname'] + ' ' + var_dict['type']
+
         # default test_eval.pickle is hifi
         var_dict['fidelity'] = 'hifi'
         summary_df = summary_df.append(var_dict, ignore_index=True)
@@ -204,6 +206,8 @@ def init_summary_df(combined_settings, all_job_fnames):
                 var_dict['rhsname'] += ' CW'
                 var_dict['type'] += ' CW'
 
+            var_dict['longname'] = var_dict['rhsname'] + ' ' + var_dict['type']
+
             summary_df = summary_df.append(var_dict, ignore_index=True)
 
     # order the categorical data
@@ -215,7 +219,7 @@ def run_summary(output_dir):
     with open(summary_df_name, "rb") as file:
         summary_df = pickle.load(file)
     summary_df = df_eval(df=summary_df)
-    metric_list = ['t_valid_005', 'differentiation_error', 'regularization_RF']
+    metric_list = ['t_valid_005', 'differentiation_error', 'regularization_RF', 'kl_all', 'acf_err']
 
     # subset summary
     # summary_df = summary_df[(summary_df.modelType!='Psi')]
@@ -243,6 +247,7 @@ def run_summary(output_dir):
                     plot_output_dir = os.path.join(output_dir, 'summary_tTrain_plotsLEGIBLE_dt{dt}_fid{fid}_rfDim{rfDim}'.format(dt=dt, fid=fid, rfDim=rfDim))
                     os.makedirs(plot_output_dir, exist_ok=True)
                     try:
+                        box(df=sub_df[sub_df.rhsname.isin(rhsname_list)], x="longname", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='tTrain_legible_{}')
                         summarize(df=sub_df[sub_df.rhsname.isin(rhsname_list)], style='type', hue='rhsname', x="tTrain", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='tTrain_legible_{}')
                         summarize(df=sub_df, style='type', hue='rhsname', x="tTrain", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='tTrain_{}')
                     except:
