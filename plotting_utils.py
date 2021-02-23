@@ -25,6 +25,28 @@ matplotlib.rc('font', **font)
 
 import pdb
 
+def box(df, output_dir, metric_list, x="model_name", fname_shape='summary_eps_{}'):
+    for metric in metric_list:
+        try:
+            fig_path = os.path.join(output_dir, fname_shape.format(metric))
+            fig, ax = plt.subplots(nrows=1, ncols=1,figsize=(24, 12))
+            sns.boxplot(ax=ax, data=df, x=x, y=metric)
+            ax.set_xticklabels(ax.get_xticklabels(), rotation=20, horizontalalignment='right', fontsize='x-large')
+
+            plt.savefig(fig_path)
+            ax.set_yscale('log')
+            plt.savefig(fig_path + '_ylog')
+
+            ax.set_xscale('log')
+            plt.savefig(fig_path + '_xlog_ylog')
+
+            ax.set_yscale('linear')
+            plt.savefig(fig_path + '_xlog')
+        except:
+            print('Failed at', metric)
+            pass
+        plt.close()
+
 def summarize(df, hue, style, output_dir, metric_list, x="f0eps", fname_shape='summary_eps_{}'):
     for metric in metric_list:
         try:
