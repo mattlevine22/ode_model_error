@@ -52,6 +52,7 @@ def box(df, output_dir, metric_list, x="model_name", fname_shape='summary_eps_{}
 
 def summarize(df, hue, style, output_dir, metric_list, x="f0eps", fname_shape='summary_eps_{}', figsize=(24, 12)):
     for metric in metric_list:
+        pdb.set_trace()
         try:
             fig, ax = plt.subplots(nrows=1, ncols=1,figsize=figsize)
             sns.lineplot(ax=ax, data=df, x=x, y=metric, style=style, hue=hue, err_style='bars', linewidth=4)
