@@ -200,10 +200,18 @@ def init_summary_df(combined_settings, all_job_fnames):
     return summary_df
 
 def run_summary(output_dir):
-    summary_df_name = os.path.join(output_dir, 'summary_df.pickle')
-    with open(summary_df_name, "rb") as file:
-        summary_df = pickle.load(file)
-    summary_df = df_eval(df=summary_df)
+    full_summary_df_name = os.path.join(output_dir, 'full_summary_df.pickle')
+    if os.path.exists(full_summary_df_name):
+        with open(full_summary_df_name, "rb") as file:
+            summary_df = pickle.load(file)
+    else:
+        summary_df_name = os.path.join(output_dir, 'summary_df.pickle')
+        with open(summary_df_name, "rb") as file:
+            summary_df = pickle.load(file)
+        summary_df = df_eval(df=summary_df)
+        with open(full_summary_df_name, "wb") as file:
+            pickle.dump(summary_df, file, pickle.HIGHEST_PROTOCOL)
+
     metric_list = ['t_valid_005', 'differentiation_error', 'regularization_RF']
     new_metric_list = ['$\tau$', 'differentiation error', 'regularization']
 
@@ -212,9 +220,8 @@ def run_summary(output_dir):
     summary_df.differentiation_error = summary_df.differentiation_error.astype(float)
 
     # add paper names
-    pdb.set_trace()
     summary_df['$\epsilon$'] = summary_df.f0eps
-    summary_df['use $f_0$'] = int(summary_df.usef0)
+    summary_df['use $f_0$'] = summary_df.usef0
     summary_df['model'] = summary_df.modelType
     summary_df['model'] = summary_df.modelType
     summary_df['$\tau$'] = summary_df.t_valid_005
