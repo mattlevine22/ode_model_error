@@ -20,16 +20,19 @@ from matplotlib import colors
 import six
 color_dict = dict(six.iteritems(colors.cnames))
 
-font = {'size': 16}
-matplotlib.rc('font', **font)
+# font = {'size': 16}
+# matplotlib.rc('font', **font)
+
+sns.set(rc={'text.usetex' : True})
+
 
 import pdb
 
-def box(df, output_dir, metric_list, x="model_name", fname_shape='summary_eps_{}'):
+def box(df, output_dir, metric_list, x="model_name", fname_shape='summary_eps_{}', figsize=(24, 20)):
     for metric in metric_list:
         try:
             fig_path = os.path.join(output_dir, fname_shape.format(metric))
-            fig, ax = plt.subplots(nrows=1, ncols=1,figsize=(24, 20))
+            fig, ax = plt.subplots(nrows=1, ncols=1,figsize=figsize)
             sns.boxplot(ax=ax, data=df, x=x, y=metric)
             ax.set_xticklabels(ax.get_xticklabels(), rotation=20, horizontalalignment='right', fontsize='large')
 
@@ -47,11 +50,11 @@ def box(df, output_dir, metric_list, x="model_name", fname_shape='summary_eps_{}
             pass
         plt.close()
 
-def summarize(df, hue, style, output_dir, metric_list, x="f0eps", fname_shape='summary_eps_{}'):
+def summarize(df, hue, style, output_dir, metric_list, x="f0eps", fname_shape='summary_eps_{}', figsize=(24, 12)):
     for metric in metric_list:
         try:
-            fig, ax = plt.subplots(nrows=1, ncols=1,figsize=(24, 12))
-            sns.lineplot(ax=ax, data=df, x=x, y=metric, style=style, hue=hue, err_style='bars', linewidth=2)
+            fig, ax = plt.subplots(nrows=1, ncols=1,figsize=figsize)
+            sns.lineplot(ax=ax, data=df, x=x, y=metric, style=style, hue=hue, err_style='bars', linewidth=4)
             fig_path = os.path.join(output_dir, fname_shape.format(metric))
             plt.savefig(fig_path)
             ax.set_yscale('log')
