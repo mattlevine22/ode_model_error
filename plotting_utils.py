@@ -29,9 +29,9 @@ def box(df, output_dir, metric_list, x="model_name", fname_shape='summary_eps_{}
     for metric in metric_list:
         try:
             fig_path = os.path.join(output_dir, fname_shape.format(metric))
-            fig, ax = plt.subplots(nrows=1, ncols=1,figsize=(24, 12))
+            fig, ax = plt.subplots(nrows=1, ncols=1,figsize=(30, 12))
             sns.boxplot(ax=ax, data=df, x=x, y=metric)
-            ax.set_xticklabels(ax.get_xticklabels(), rotation=20, horizontalalignment='right', fontsize='x-large')
+            ax.set_xticklabels(ax.get_xticklabels(), rotation=20, horizontalalignment='right', fontsize='large')
 
             plt.savefig(fig_path)
             ax.set_yscale('log')

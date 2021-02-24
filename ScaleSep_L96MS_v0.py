@@ -204,7 +204,6 @@ def init_summary_df(combined_settings, all_job_fnames):
 
             if var_dict['componentWise']:
                 var_dict['rhsname'] += ' CW'
-                var_dict['type'] += ' CW'
 
             var_dict['longname'] = var_dict['rhsname'] + ' ' + var_dict['type']
 
