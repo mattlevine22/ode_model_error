@@ -211,6 +211,7 @@ def run_summary(output_dir):
     summary_df.differentiation_error = summary_df.differentiation_error.astype(float)
 
     # add paper names
+    pdb.set_trace()
     summary_df['$\epsilon$'] = summary_df.f0eps
 
     ## build a custom, legible epsilon plot
