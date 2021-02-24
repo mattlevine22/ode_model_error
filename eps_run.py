@@ -205,6 +205,7 @@ def run_summary(output_dir):
         summary_df = pickle.load(file)
     summary_df = df_eval(df=summary_df)
     metric_list = ['t_valid_005', 'differentiation_error', 'regularization_RF']
+    new_metric_list = ['$\tau$', 'differentiation error', 'regularization']
 
     # subset summary
     # summary_df = summary_df[(summary_df.modelType!='Psi')]
@@ -213,6 +214,12 @@ def run_summary(output_dir):
     # add paper names
     pdb.set_trace()
     summary_df['$\epsilon$'] = summary_df.f0eps
+    summary_df['use $f_0$'] = int(summary_df.usef0)
+    summary_df['model'] = summary_df.modelType
+    summary_df['model'] = summary_df.modelType
+    summary_df['$\tau$'] = summary_df.t_valid_005
+    summary_df['differentiation error'] = summary_df.differentiation_error
+    summary_df['regularization'] = summary_df.regularization_RF
 
     ## build a custom, legible epsilon plot
     # TrueDeriv-DataGrid (rhs idealized)
@@ -230,7 +237,7 @@ def run_summary(output_dir):
                 plot_output_dir = os.path.join(output_dir, 'summary_epsilon_plotsLEGIBLE_dt{dt}_tTrain{t}_fid{fid}'.format(dt=dt, t=t, fid=fid))
                 os.makedirs(plot_output_dir, exist_ok=True)
                 try:
-                    summarize(df=sub_df[sub_df.rhsname.isin(papername_list)], style='type', hue='modelType', x="f0eps", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='eps_{}')
+                    summarize(df=sub_df[sub_df.rhsname.isin(papername_list)], style='use $f_0$', hue='model', x="$\epsilon$", output_dir=plot_output_dir, metric_list=new_metric_list, fname_shape='eps_{}')
                     summarize(df=sub_df[sub_df.rhsname.isin(rhsname_list)], style='type', hue='rhsname', x="f0eps", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='eps_{}')
                     summarize(df=sub_df, style='type', hue='rhsname', x="f0eps", output_dir=plot_output_dir, metric_list=metric_list, fname_shape='eps_all_{}')
                 except:

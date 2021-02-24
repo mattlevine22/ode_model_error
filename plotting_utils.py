@@ -23,7 +23,7 @@ color_dict = dict(six.iteritems(colors.cnames))
 # font = {'size': 16}
 # matplotlib.rc('font', **font)
 
-sns.set(rc={'text.usetex' : True})
+sns.set(rc={'text.usetex': True}, font_scale=4)
 
 
 import pdb
