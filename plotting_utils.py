@@ -23,7 +23,7 @@ color_dict = dict(six.iteritems(colors.cnames))
 # font = {'size': 16}
 # matplotlib.rc('font', **font)
 
-sns.set(rc={'text.usetex': True}, font_scale=4)
+# sns.set(rc={'text.usetex': True}, font_scale=4)
 
 
 import pdb
@@ -50,9 +50,41 @@ def box(df, output_dir, metric_list, x="model_name", fname_shape='summary_eps_{}
             pass
         plt.close()
 
+def new_summary(df, fig_path, hue='Model', style='Uses $f_0$', x="$\epsilon$", y='t_valid_005',
+                figsize=(12,10),
+                fontsize=20,
+                ylabel=None,
+                xlabel=None,
+                title=None,
+                legloc='upper right'):
+
+    font = {'size': fontsize}
+    matplotlib.rc('font', **font)
+
+    fig, ax = plt.subplots(nrows=1, ncols=1, figsize=figsize)
+    sns.lineplot(ax=ax, data=df, x=x, y=y, style=style, hue=hue, err_style='bars', linewidth=4)
+    if ylabel:
+        ax.set_ylabel(ylabel)
+    if xlabel:
+        ax.set_xlabel(xlabel)
+    if title:
+        ax.set_title(title, fontsize=fontsize)
+    ax.legend(loc=legloc, fontsize=fontsize)
+
+    ax.set_yscale('log')
+    plt.savefig(fig_path + '_ylog')
+
+    ax.set_xscale('log')
+    plt.savefig(fig_path + '_xlog_ylog')
+
+    ax.set_yscale('linear')
+    plt.savefig(fig_path + '_xlog')
+
+    plt.close()
+
+
 def summarize(df, hue, style, output_dir, metric_list, x="f0eps", fname_shape='summary_eps_{}', figsize=(24, 12)):
     for metric in metric_list:
-        pdb.set_trace()
         try:
             fig, ax = plt.subplots(nrows=1, ncols=1,figsize=figsize)
             sns.lineplot(ax=ax, data=df, x=x, y=metric, style=style, hue=hue, err_style='bars', linewidth=4)
