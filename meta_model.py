@@ -380,7 +380,11 @@ class IDK(object):
 			with open(self.test_data_path, "rb") as file:
 				data = pickle.load(file)
 				self.dt_rawdata = data["dt"]
-				inv_data = data["u_{}".format(setnm)][0, :, :self.input_dim]
+				try:
+					inv_data = data["u_{}".format(setnm)][0, :, :self.input_dim]
+				except:
+					# catch old formatting
+					inv_data = data["u_{}".format(setnm)][:, :self.input_dim]
 				del data
 
 			print('Evaluating', setnm, 'set')
