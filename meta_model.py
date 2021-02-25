@@ -43,7 +43,7 @@ import pandas as pd
 import pdb
 
 class IDK(object):
-	def __init__(self, settings, default_esn_settings='./Config/esn_default_params.json', solver_dict='./Config/solver_settings.json'):
+	def __init__(self, settings, default_esn_settings='./Config/default_params.json', solver_dict='./Config/solver_settings.json'):
 		# load default settings
 		params = file_to_dict(default_esn_settings)
 		# add extra settings and replace defaults as needed
