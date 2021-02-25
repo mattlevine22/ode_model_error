@@ -75,7 +75,8 @@ def declare_jobs(data_pathname, datagen_settings, output_dir, master_job_file, c
     shared_settings = {'data_pathname': data_pathname,
                         'f0_name': 'L63',
                         'input_dim': 3,
-                        't_test': 20}
+                        't_test': 20,
+                        't_inv': 100}
 
     f0eps_list = [0.2]
     dt_list = [0.01]
