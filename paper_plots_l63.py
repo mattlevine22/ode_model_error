@@ -158,7 +158,13 @@ def plot_rfDim(base_dir, plot_dir):
     f0eps=0.2
     dt=0.01
     tTrain=100
-    paper_df = summary_df[(summary_df.rhsname.isin(papername_list)) & (summary_df.stateType!='stateAndPred') & (summary_df.f0eps==f0eps) & (summary_df.dt==dt) & (summary_df.fidelity==fid) & (summary_df.eval_pickle_fname.str.contains("test_eval.pickle"))]
+    paper_df = summary_df[(summary_df.rhsname.isin(papername_list)) &
+                        (summary_df.stateType!='stateAndPred') &
+                        (summary_df.fidelity==fid) &
+                        (summary_df.f0eps==f0eps) &
+                        (summary_df.dt==dt) &
+                        (summary_df.tTrain==tTrain) &
+                        (summary_df.eval_pickle_fname.str.contains("test_eval.pickle"))]
 
     fig_path = os.path.join(plot_dir, 'rfDim_quality')
 
