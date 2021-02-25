@@ -66,7 +66,8 @@ def main(cmd_py, output_dir, cmd_job, datagen, conda_env, **kwargs):
         prioritized_job_sender(all_job_fnames,
                                 bash_command=cmd_job,
                                 list_of_priorities=lop,
-                                do_all=True)
+                                do_all=True,
+                                noredo=False)
 
     run_summary(output_dir)
 
