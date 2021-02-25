@@ -41,7 +41,7 @@ def plot_l96ScaleSep(base_dir, plot_dir):
 
     eval_dict = {'t_valid_005': 'Validity Time', 'kl_all': 'KL-Divergence', 'acf_error': 'Autocorrelation Error'}
 
-    papername_dict = {'f0only f0only': '$f^\dag \\approx f_0$',
+    papername_dict = {'f0only resid=1, state': '$f^\dag \\approx f_0$',
                         'rhs w/ diff=Spline, costInt=datagrid CW resid=1, state': '$f^\dag \\approx f_0 + m$',
                         'Psi CW resid=1, state': '$\Psi^\dag \\approx \Psi_0 + m$',
                         'rhs w/ diff=Spline, costInt=datagrid resid=0, state': '$f^\dag \\approx m$',
@@ -60,7 +60,6 @@ def plot_l96ScaleSep(base_dir, plot_dir):
                         (summary_df.tTrain==tTrain) &
                         (summary_df.eval_pickle_fname.str.contains("test_eval_{}.pickle".format(fid)))]
 
-    pdb.set_trace()
     for key in eval_dict:
         fig_path = os.path.join(plot_dir, 'l96_ScaleSep_{}'.format(key))
         new_box(df=paper_df, fig_path=fig_path,
@@ -72,6 +71,6 @@ def plot_l96ScaleSep(base_dir, plot_dir):
                     legloc='best',
                     figsize=(12,12))
 
-
 if __name__ == '__main__':
+    os.makedirs(FLAGS.plot_dir, exist_ok=True)
     plot_l96ScaleSep(**FLAGS.__dict__)
