@@ -435,9 +435,10 @@ class IDK(object):
 			prediction = np.array(prediction)
 		elif 'rhs' in self.modelType or self.f0only:
 			N = int(t_end / self.dt_test) + 1
-			t_eval = self.dt_test*np.arange(1,N)
+			t_eval = self.dt_test*np.arange(N)
 			t_span = [t_eval[0], t_eval[-1]]
 			prediction = my_solve_ivp(ic=ic, f_rhs=self.rhs, t_eval=t_eval, t_span=t_span, settings=self.solver_settings)
+			prediction = prediction[1:]
 		return prediction
 
 
