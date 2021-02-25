@@ -165,7 +165,7 @@ def init_summary_df(combined_settings, all_job_fnames):
         var_dict['model_fname'] = os.path.join(job_dir, 'Trained_Models/data.pickle')
         if var_dict['modelType']=='f0only':
             if var_dict['slowOnly']:
-                var_dict['type'] = 'f0only'
+                var_dict['type'] = 'resid=1, state'
                 var_dict['rhsname'] = 'f0only'
             else:
                 var_dict['type'] = 'fdagMS'
@@ -190,7 +190,7 @@ def init_summary_df(combined_settings, all_job_fnames):
             var_dict['model_fname'] = os.path.join(job_dir, 'Trained_Models/data.pickle')
             if var_dict['modelType']=='f0only':
                 if var_dict['slowOnly']:
-                    var_dict['type'] = 'f0only'
+                    var_dict['type'] = 'resid=1, state'
                     var_dict['rhsname'] = 'f0only'
                 else:
                     var_dict['type'] = 'fdagMS'
@@ -214,10 +214,17 @@ def init_summary_df(combined_settings, all_job_fnames):
     return summary_df
 
 def run_summary(output_dir):
-    summary_df_name = os.path.join(output_dir, 'summary_df.pickle')
-    with open(summary_df_name, "rb") as file:
-        summary_df = pickle.load(file)
-    summary_df = df_eval(df=summary_df)
+    full_summary_df_name = os.path.join(output_dir, 'full_summary_df.pickle')
+    if os.path.exists(full_summary_df_name):
+        with open(full_summary_df_name, "rb") as file:
+            summary_df = pickle.load(file)
+    else:
+        summary_df_name = os.path.join(output_dir, 'summary_df.pickle')
+        with open(summary_df_name, "rb") as file:
+            summary_df = pickle.load(file)
+        summary_df = df_eval(df=summary_df)
+        with open(full_summary_df_name, "wb") as file:
+            pickle.dump(summary_df, file, pickle.HIGHEST_PROTOCOL)
     metric_list = ['t_valid_005', 'differentiation_error', 'regularization_RF', 'kl_all', 'acf_error']
 
     # subset summary
@@ -238,7 +245,7 @@ def run_summary(output_dir):
                     'f0only'
                     ]
 
-    sub_df1 = summary_df[summary_df.stateType!='stateAndPred']
+    sub_df1 = summary_df[(summary_df.stateType!='stateAndPred') & (summary_df.eval_pickle_fname.str.contains("test_eval.pickle"))]
     for rfDim in summary_df.rfDim.unique():
         for fid in summary_df.fidelity.unique():
             for dt in summary_df.dt.unique():
