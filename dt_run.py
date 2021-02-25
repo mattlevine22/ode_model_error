@@ -224,7 +224,7 @@ def run_summary(output_dir):
     # f0only (physics only)
     # Psi
     rhsname_list = ['rhs w/ diff=TrueDeriv, costInt=datagrid', 'rhs w/ diff=Spline, costInt=datagrid', 'f0only', 'Psi']
-    sub_df1 = summary_df[summary_df.stateType!='stateAndPred' & (summary_df.eval_pickle_fname.str.contains("test_eval.pickle"))]
+    sub_df1 = summary_df[(summary_df.stateType!='stateAndPred') & (summary_df.eval_pickle_fname.str.contains("test_eval.pickle"))]
     for fid in summary_df.fidelity.unique():
         for f0eps in summary_df.f0eps.unique():
                 sub_df = sub_df1[(sub_df1.f0eps==f0eps) & (sub_df1.fidelity==fid)]

@@ -227,7 +227,7 @@ def run_summary(output_dir):
     # Psi
     rhsname_list = ['rhs w/ diff=TrueDeriv, costInt=datagrid', 'rhs w/ diff=Spline, costInt=datagrid', 'f0only', 'Psi']
     ## Epsilon-based summary
-    sub_df1 = summary_df[summary_df.stateType!='stateAndPred' & (summary_df.eval_pickle_fname.str.contains("test_eval.pickle"))]
+    sub_df1 = summary_df[(summary_df.stateType!='stateAndPred') & (summary_df.eval_pickle_fname.str.contains("test_eval.pickle"))]
     for f0eps in summary_df.f0eps.unique():
         for fid in summary_df.fidelity.unique():
             for dt in summary_df.dt.unique():

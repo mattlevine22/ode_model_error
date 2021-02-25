@@ -228,7 +228,7 @@ def run_summary(output_dir):
     # Psi
     rhsname_list = ['rhs w/ diff=TrueDeriv, costInt=datagrid', 'rhs w/ diff=Spline, costInt=datagrid', 'f0only', 'Psi']
 
-    sub_df1 = summary_df[summary_df.stateType!='stateAndPred' & (summary_df.eval_pickle_fname.str.contains("test_eval.pickle"))]
+    sub_df1 = summary_df[(summary_df.stateType!='stateAndPred') & (summary_df.eval_pickle_fname.str.contains("test_eval.pickle"))]
     for rfDim in summary_df.rfDim.unique():
         for fid in summary_df.fidelity.unique():
             for dt in summary_df.dt.unique():
