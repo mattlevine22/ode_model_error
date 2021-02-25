@@ -396,7 +396,7 @@ class IDK(object):
 	def eval(self, input_sequence, t_end, set_name, traj_plots=True, inv_plots=False, inv_stats=False):
 		# allocate ic and target
 		ic = self.scaler.scaleData(input_sequence[0], reuse=1)
-		target = input_sequence
+		target = input_sequence[1:]
 
 		# get predictions
 		prediction = self.make_predictions(ic=ic, t_end=t_end)
@@ -422,7 +422,6 @@ class IDK(object):
 	def make_predictions(self, ic, t_end):
 		if 'Psi' in self.modelType:
 			prediction = []
-			prediction.append(ic)
 			n_steps = int(t_end / self.dt_test)
 			n_discrete_iters = int(self.dt_test / self.dt)
 			for n in range(n_steps):
@@ -433,7 +432,7 @@ class IDK(object):
 		elif 'rhs' in self.modelType or self.f0only:
 			N = int(t_end / self.dt_test) + 1
 			t_eval = self.dt_test*np.arange(N)
-			t_span = [t_eval[0], t_eval[-1]]
+			t_span = [t_eval[1], t_eval[-1]]
 			prediction = my_solve_ivp(ic=ic, f_rhs=self.rhs, t_eval=t_eval, t_span=t_span, settings=self.solver_settings)
 		return prediction
 
