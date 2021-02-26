@@ -99,6 +99,7 @@ def new_summary(df, fig_path, hue='Model', style='Uses $f_0$', x="$\epsilon$", y
     if title:
         ax.set_title(title, fontsize=fontsize)
     ax.legend(loc=legloc, fontsize=fontsize)
+    plt.savefig(fig_path)
 
     ax.set_yscale('log')
     plt.savefig(fig_path + '_ylog')

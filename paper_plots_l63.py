@@ -14,11 +14,11 @@ parser.add_argument('--base_dir', default='/Users/matthewlevine/Downloads/', typ
 parser.add_argument('--plot_dir', default='/Users/matthewlevine/Dropbox/mechanistic+ML/active_writeups/2021_ICML/l63_v5_figs/auto', type=str)
 FLAGS = parser.parse_args()
 
-# eval_dict = {'t_valid_005': 'Validity Time', 'kl_mean': 'KL-Divergence', 'acf_error': 'Autocorrelation Error'}
-eval_dict = {'t_valid_005': 'Validity Time'}
+EVAL_DICT_ALL = {'t_valid_005': 'Validity Time', 'kl_mean': 'KL-Divergence', 'acf_error': 'Autocorrelation Error'}
+EVAL_DICT_SHORT = {'t_valid_005': 'Validity Time'}
 
 ####### EPSILON EXPERIMENT
-def plot_epsilon(base_dir, plot_dir):
+def plot_epsilon(base_dir, plot_dir, eval_dict=EVAL_DICT_SHORT):
     output_dir = os.path.join(base_dir, 'l63eps_v5_eps_validateReg')
 
     full_summary_df_name = os.path.join(output_dir, 'full_summary_df.pickle')
@@ -59,7 +59,7 @@ def plot_epsilon(base_dir, plot_dir):
 
 
 ####### DT EXPERIMENT
-def plot_dt(base_dir, plot_dir):
+def plot_dt(base_dir, plot_dir, eval_dict=EVAL_DICT_ALL):
     output_dir = os.path.join(base_dir, 'l63eps_v5_dt_validateReg2')
 
     full_summary_df_name = os.path.join(output_dir, 'full_summary_df.pickle')
@@ -98,7 +98,7 @@ def plot_dt(base_dir, plot_dir):
 
 
 ####### T EXPERIMENT
-def plot_T(base_dir, plot_dir):
+def plot_T(base_dir, plot_dir, eval_dict=EVAL_DICT_SHORT):
     output_dir = os.path.join(base_dir, 'l63eps_v5_T_validateReg')
 
     full_summary_df_name = os.path.join(output_dir, 'full_summary_df.pickle')
@@ -139,7 +139,7 @@ def plot_T(base_dir, plot_dir):
 
 
 ####### rfDim EXPERIMENT
-def plot_rfDim(base_dir, plot_dir):
+def plot_rfDim(base_dir, plot_dir, eval_dict=EVAL_DICT_SHORT):
     output_dir = os.path.join(base_dir, 'l63eps_v5_rfDim_validateReg')
 
     full_summary_df_name = os.path.join(output_dir, 'full_summary_df.pickle')
