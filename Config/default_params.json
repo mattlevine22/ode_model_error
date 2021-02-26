@@ -5,7 +5,7 @@
   "dt_test": 0.1,
   "retrain": 0,
   "retest": 1,
-  "validate_regularization": 0,
+  "validate_regularization": 1,
   "validate_rf": 0,
   "regularization_RF": 1e-10,
   "scaler_tt": "standard",
