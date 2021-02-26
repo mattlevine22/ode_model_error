@@ -43,9 +43,9 @@ import pandas as pd
 import pdb
 
 class IDK(object):
-	def __init__(self, settings, default_esn_settings='./Config/default_params.json', solver_dict='./Config/solver_settings.json'):
+	def __init__(self, settings, default_settings='./Config/default_params.json', solver_dict='./Config/solver_settings.json', model_dict='./Config/system_params.json'):
 		# load default settings
-		params = file_to_dict(default_esn_settings)
+		params = file_to_dict(default_settings)
 		# add extra settings and replace defaults as needed
 		params.update(settings)
 
@@ -55,6 +55,12 @@ class IDK(object):
 
 		for key in params:
 			exec('self.{} = params["{}"]'.format(key, key))
+
+		# load model specific settings and add them to params
+		foo = file_to_dict(model_dict)
+		foo = foo[self.f0_name]
+		for key in foo:
+			exec('self.{} = foo["{}"]'.format(key, key))
 
 		#
 		if self.useNTrain:
@@ -405,7 +411,7 @@ class IDK(object):
 		# get predictions
 		prediction = self.make_predictions(ic=ic, t_end=t_end)
 		prediction = self.scaler.descaleData(prediction)
-		eval_dict = computeErrors(target, prediction, self.scaler.data_std, dt=self.dt_test)
+		eval_dict = computeErrors(target, prediction, self.scaler.data_std, dt=self.dt_test, Tacf=self.Tacf)
 
 		# add hyperparameters to test_eval.pickle output
 		try:
@@ -566,9 +572,8 @@ class IDK(object):
 		plt.close()
 
 	def saveInvStats(self, true_traj, predicted_traj, eval_dict, set_name=''):
-		T_acf = 10
-		nlags = int(T_acf/self.dt) - 1
-		acfgrid = np.arange(0, T_acf, self.dt)
+		nlags = int(self.Tacf/self.dt) - 1
+		acfgrid = np.arange(0, self.Tacf, self.dt)
 
 		if self.f0_name=='L63':
 			ncols = self.input_dim
@@ -931,27 +936,49 @@ class IDK(object):
 		return rf_input, x_output, x_input_descaled
 
 	def plotModel(self):
-
-		if not self.componentWise:
-			return
+		fig_path = os.path.join(self.fig_dir, "model_plot.png")
 
 		rf_input, x_output, x_input_descaled = self.get_regression_IO()
 
-		x_grid = np.arange(-8,13,0.01)
-		x_grid_scaled_mat = self.scaler.scaleData(x_grid, reuse=1)[None,:]
-		bh_mat = np.tile(self.b_h_markov, len(x_grid))
-		hY = self.W_out_markov @ np.tanh(self.W_in_markov @ x_grid_scaled_mat + bh_mat)
-		if 'Psi' in self.modelType:
-			x_output /= self.dt
-			hY /= self.dt
+		if not self.componentWise and self.f0_name=='L63':
+			bh_mat = np.tile(self.b_h_markov, rf_input.shape[0])
+			rf_output = (self.W_out_markov @ np.tanh(self.W_in_markov @ rf_input.T + bh_mat)).T
+			if 'Psi' in self.modelType:
+				rf_output_descaled = self.scaler.descaleData(rf_output)
+			elif 'rhs' in self.modelType:
+				rf_output_descaled = self.scaler.descaleXdot(rf_output)
 
-		fig_path = os.path.join(self.fig_dir, "model_plot.png")
-		fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(12, 12))
+			fig, ax = plt.subplots(nrows=self.input_dim, ncols=self.input_dim, figsize=(14, 14))
+			# x axis is INPUT dim for model
+			# y axis is OUTPUT dim for model
+			for x_in in range(self.input_dim): #
+				for x_out in range(self.input_dim):
+					ax[x_out][x_in].scatter(x_input_descaled[:,x_in], rf_output_descaled[:,x_out])
+					if x_out==1 and x_in==0:
+						goo = -self.f0eps * 28 * x_input_descaled[:,x_in]
+						ax[x_out][x_in].scatter(x_input_descaled[:,x_in], goo, color='red')
+						ax[x_out][x_in].set_title('Error = {}'.format(np.mean((goo-rf_output_descaled[:,x_out])**2)))
+					else:
+						ax[x_out][x_in].set_title('Error = {}'.format(np.mean((rf_output_descaled[:,x_out])**2)))
+					ax[x_out][x_in].set_xlabel('Xin_{}'.format(x_in))
+					ax[x_out][x_in].set_ylabel('Xout_{}'.format(x_out))
 
-		ax.plot(x_grid, np.squeeze(hY), color='blue', linewidth=4)
-		ax.scatter(x_input_descaled.reshape(-1), x_output.T.reshape(-1))
-		ax.set_xlabel('X_k')
-		ax.set_ylabel('hY')
+		elif self.componentWise and self.f0_name=='L96M':
+			x_grid = np.arange(-8,13,0.01)
+			x_grid_scaled_mat = self.scaler.scaleData(x_grid, reuse=1)[None,:]
+			bh_mat = np.tile(self.b_h_markov, len(x_grid))
+			hY = self.W_out_markov @ np.tanh(self.W_in_markov @ x_grid_scaled_mat + bh_mat)
+			if 'Psi' in self.modelType:
+				x_output /= self.dt
+				hY /= self.dt
+
+			fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(12, 12))
+
+			ax.plot(x_grid, np.squeeze(hY), color='blue', linewidth=4)
+			ax.scatter(x_input_descaled.reshape(-1), x_output.T.reshape(-1))
+			ax.set_xlabel('X_k')
+			ax.set_ylabel('hY')
+
 		plt.suptitle('Model Fit')
 		plt.savefig(fig_path)
 		plt.close()

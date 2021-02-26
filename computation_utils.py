@@ -53,7 +53,7 @@ def kdegrid(Xtrue, Xapprox, kde_func=kde_scipy, gridsize=1000):
 	Qk = kde_func(Xtrue.astype(np.float), x_grid) # Q is reference dist
 	return x_grid, Pk, Qk
 
-def computeErrors(target, prediction, std, dt, do_inv=True):
+def computeErrors(target, prediction, std, dt, do_inv=True, Tacf=10):
 	prediction = replaceNaN(prediction)
 	# ABSOLUTE ERROR
 	abserror = np.mean(np.abs(target-prediction), axis=1)
@@ -87,8 +87,7 @@ def computeErrors(target, prediction, std, dt, do_inv=True):
 		 # (average 1d KL )
 		kl_mean = np.mean([kl4dummies(Xtrue=target[:,i], Xapprox=prediction[:,i], gridsize=512) for i in range(target.shape[1])])
 
-		T_acf = 10
-		nlags = int(T_acf/dt) - 1
+		nlags = int(Tacf/dt) - 1
 		acf_approx = acf(prediction[:,0], fft=True, nlags=nlags) #look at first component
 		acf_true = acf(target[:,0], fft=True, nlags=nlags) #look at first component
 		acf_error = np.mean((acf_true - acf_approx)**2)
