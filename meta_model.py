@@ -74,6 +74,10 @@ class IDK(object):
 		else:
 			self.interp = 'Linear'
 
+		if 'GP' in self.modelType:
+			self.validate_regularization = 0
+			self.validate_rf = 0
+
 		# for now, ignore the fixed test dt and test at training data dt
 		self.dt_test = self.dt
 
@@ -471,7 +475,7 @@ class IDK(object):
 					else:
 						rf_input = x_input[k,None]
 					if 'GP' in self.modelType:
-						u_next[k] = pred[k] + self.gpr.predict(rf_input)
+						u_next[k] = pred[k] + self.gpr.predict(rf_input.reshape(1, -1))
 					else:
 						u_next[k] = pred[k] + self.W_out_markov @ self.q_t(rf_input)
 			else:
@@ -480,7 +484,7 @@ class IDK(object):
 				else:
 					rf_input = x_input
 				if 'GP' in self.modelType:
-					u_next = pred + self.gpr.predict(rf_input)
+					u_next = pred + self.gpr.predict(rf_input.reshape(1, -1))
 				else:
 					u_next = pred + self.W_out_markov @ self.q_t(rf_input)
 		elif 'rhs' in self.modelType:
@@ -515,7 +519,7 @@ class IDK(object):
 				else:
 					rf_input = x_input[k,None]
 				if 'GP' in self.modelType:
-					f_error_markov[k] = self.gpr.predict(rf_input)
+					f_error_markov[k] = np.squeeze(self.gpr.predict(rf_input.reshape(1, -1)))
 				else:
 					f_error_markov[k] = self.W_out_markov @ self.q_t(rf_input)
 		else:
@@ -524,7 +528,7 @@ class IDK(object):
 			else:
 				rf_input = x_input
 			if 'GP' in self.modelType:
-				f_error_markov = self.gpr.predict(rf_input)
+				f_error_markov = np.squeeze(self.gpr.predict(rf_input.reshape(1, -1)))
 			else:
 				f_error_markov = self.W_out_markov @ self.q_t(rf_input)
 
@@ -883,12 +887,15 @@ class IDK(object):
 
 			if do_plots:
 				plotMatrix(self, self.W_out_markov, 'W_out_markov')
-				self.plotModel()
 
 			# Compute residuals from inversion
 			res = (self.Z + regI) @ W_out_all.T - self.Y
 			mse = np.mean(res**2)
 			print('Inversion MSE for lambda_RF={lrf} is {mse} with normalized |Wout|={nrm}'.format(lrf=self.regularization_RF, mse=mse, nrm=np.mean(W_out_all**2)))
+
+		if do_plots:
+			self.plotModel()
+
 
 	def get_regression_IO(self):
 
@@ -1048,10 +1055,13 @@ class IDK(object):
 			data = pickle.load(file)
 			self.scaler = data["scaler"]
 			if not self.f0only:
-				self.W_in_markov = data["W_in_markov"]
-				self.b_h_markov = data["b_h_markov"]
-				self.W_out_markov = data["W_out_markov"]
-				self.regularization_RF = data["regularization_RF"]
-				self.rf_Win_bound = data["rf_Win_bound"]
-				self.rf_bias_bound = data["rf_bias_bound"]
 				self.differentiation_error = data["differentiation_error"]
+				if 'GP' in self.modelType:
+					self.gpr = data["gpr"]
+				else:
+					self.W_in_markov = data["W_in_markov"]
+					self.b_h_markov = data["b_h_markov"]
+					self.W_out_markov = data["W_out_markov"]
+					self.regularization_RF = data["regularization_RF"]
+					self.rf_Win_bound = data["rf_Win_bound"]
+					self.rf_bias_bound = data["rf_bias_bound"]
