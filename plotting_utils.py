@@ -48,6 +48,7 @@ def box(df, output_dir, metric_list, x="model_name", fname_shape='summary_eps_{}
 def new_box(df, fig_path,
             x='Model',
             y='t_valid_005',
+            order=None,
             figsize=(12,10),
             fontsize=20,
             ylabel=None,
@@ -59,7 +60,7 @@ def new_box(df, fig_path,
     matplotlib.rc('font', **font)
 
     fig, ax = plt.subplots(nrows=1, ncols=1,figsize=figsize)
-    sns.boxplot(ax=ax, data=df, x=x, y=y)
+    sns.boxplot(ax=ax, data=df, x=x, y=y, order=order)
     ax.set_xticklabels(ax.get_xticklabels(), rotation=20, horizontalalignment='right', fontsize='large')
     if ylabel:
         ax.set_ylabel(ylabel)
@@ -67,10 +68,10 @@ def new_box(df, fig_path,
         ax.set_xlabel(xlabel)
     if title:
         ax.set_title(title, fontsize=fontsize)
-    ax.legend(loc=legloc, fontsize=fontsize)
+    # ax.legend(loc=legloc, fontsize=fontsize)
 
     # fig.subplots_adjust(wspace=0.3, hspace=0.3)
-    fig.subplots_adjust(bottom=0.3, left=0.3)
+    fig.subplots_adjust(bottom=0.15, left=0.15)
 
 
     plt.savefig(fig_path)
