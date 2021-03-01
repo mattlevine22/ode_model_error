@@ -289,7 +289,7 @@ class IDK(object):
 			rf_input, x_output, x_input_descaled = self.get_regression_IO()
 			if 'GP' in self.modelType:
 				if self.componentWise:
-					raise ValueError('component wise not yet set up for Euler')
+					raise ValueError('component wise not yet set up for GPR')
 				GP_ker = ConstantKernel(1.0, (1e-5, 1e5)) * RBF(1.0, (1e-10, 1e+6)) + WhiteKernel(1.0, (1e-10, 1e6))
 				my_gpr = GaussianProcessRegressor(
 					kernel = GP_ker,
@@ -514,13 +514,20 @@ class IDK(object):
 					rf_input = np.hstack((x_input[k,None], f0[k,None]))
 				else:
 					rf_input = x_input[k,None]
-				f_error_markov[k] = self.W_out_markov @ self.q_t(rf_input)
+				if 'GP' in self.modelType:
+					f_error_markov[k] = self.gpr.predict(rf_input)
+				else:
+					f_error_markov[k] = self.W_out_markov @ self.q_t(rf_input)
 		else:
 			if self.rf_error_input:
 				rf_input = np.hstack((x_input, f0))
 			else:
 				rf_input = x_input
-			f_error_markov = self.W_out_markov @ self.q_t(rf_input)
+			if 'GP' in self.modelType:
+				f_error_markov = self.gpr.predict(rf_input)
+			else:
+				f_error_markov = self.W_out_markov @ self.q_t(rf_input)
+
 
 		# total rhs for x
 		if self.doResidual:
@@ -941,8 +948,11 @@ class IDK(object):
 		rf_input, x_output, x_input_descaled = self.get_regression_IO()
 
 		if not self.componentWise and self.f0_name=='L63':
-			bh_mat = np.tile(self.b_h_markov, rf_input.shape[0])
-			rf_output = (self.W_out_markov @ np.tanh(self.W_in_markov @ rf_input.T + bh_mat)).T
+			if 'GP' in self.modelType:
+				rf_output = self.gpr.predict(rf_input)
+			else:
+				bh_mat = np.tile(self.b_h_markov, rf_input.shape[0])
+				rf_output = (self.W_out_markov @ np.tanh(self.W_in_markov @ rf_input.T + bh_mat)).T
 			if 'Psi' in self.modelType:
 				rf_output_descaled = self.scaler.descaleData(rf_output)
 			elif 'rhs' in self.modelType:
@@ -967,7 +977,10 @@ class IDK(object):
 			x_grid = np.arange(-8,13,0.01)
 			x_grid_scaled_mat = self.scaler.scaleData(x_grid, reuse=1)[None,:]
 			bh_mat = np.tile(self.b_h_markov, len(x_grid))
-			hY = self.W_out_markov @ np.tanh(self.W_in_markov @ x_grid_scaled_mat + bh_mat)
+			if 'GP' in self.modelType:
+				hY = self.gpr.predict(x_grid_scaled_mat)
+			else:
+				hY = self.W_out_markov @ np.tanh(self.W_in_markov @ x_grid_scaled_mat + bh_mat)
 			if 'Psi' in self.modelType:
 				x_output /= self.dt
 				hY /= self.dt
