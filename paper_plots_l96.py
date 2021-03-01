@@ -42,10 +42,11 @@ def plot_l96ScaleSep(base_dir, plot_dir):
     eval_dict = {'t_valid_005': 'Validity Time', 'kl_all': 'KL-Divergence', 'acf_error': 'Autocorrelation Error'}
 
     papername_dict = {'f0only resid=1, state': '$f^\dag \\approx f_0$',
-                        'rhs w/ diff=Spline, costInt=datagrid CW resid=1, state': '$f^\dag \\approx f_0 + m$',
-                        'Psi CW resid=1, state': '$\Psi^\dag \\approx \Psi_0 + m$',
+                        'Psi resid=0, state': '$\Psi^\dag \\approx m$',
                         'rhs w/ diff=Spline, costInt=datagrid resid=0, state': '$f^\dag \\approx m$',
-                        'Psi resid=0, state': '$\Psi^\dag \\approx m$',}
+                        'Psi CW resid=1, state': '$\Psi^\dag \\approx \Psi_0 + m$',
+                        'rhs w/ diff=Spline, costInt=datagrid CW resid=1, state': '$f^\dag \\approx f_0 + m$'
+                        }
 
     for nm in papername_dict:
         summary_df.loc[summary_df.longname==nm, 'Model'] = papername_dict[nm]
@@ -65,9 +66,10 @@ def plot_l96ScaleSep(base_dir, plot_dir):
         new_box(df=paper_df, fig_path=fig_path,
                     x="Model",
                     y=key,
+                    order=[papername_dict[k] for k in papername_dict.keys()],
                     xlabel='Models',
                     ylabel=eval_dict[key],
-                    title='Model performance comparisons',
+                    title='Model performance comparisons ({})'.format(eval_dict[key]),
                     legloc='best',
                     figsize=(12,12))
 
