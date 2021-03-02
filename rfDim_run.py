@@ -67,7 +67,7 @@ def main(cmd_py, output_dir, cmd_job, datagen, conda_env, **kwargs):
                                 bash_command=cmd_job,
                                 list_of_priorities=lop,
                                 do_all=True,
-                                noredo=False)
+                                noredo=True)
 
     run_summary(output_dir)
 
@@ -79,14 +79,14 @@ def declare_jobs(data_pathname, datagen_settings, output_dir, master_job_file, c
                         't_test': 20,
                         't_inv': 100}
 
-    f0eps_list = [0.2]
-    dt_list = [0.01]
+    f0eps_list = [0.05]
+    dt_list = [0.001]
     rfDim_list = [5, 25, 50, 100, 200, 500, 1000, 2000, 5000, 10000]
 
     ## rhs runs
     combined_settings = { 'modelType': ['rhs'],
-                 'diff': ['TrueDeriv','Euler', 'Spline'],
-                 'costIntegration': ['datagrid', 'interp'],
+                 'diff': ['Spline'],
+                 'costIntegration': ['datagrid'],
                  'rfDim': rfDim_list,
                  'tTrain': [100],
                  'usef0': [0],
