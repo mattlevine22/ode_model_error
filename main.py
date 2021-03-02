@@ -4,8 +4,8 @@ import argparse
 from meta_model import *
 from utils import *
 import pdb
+from pydoc import locate
 
-from odelibrary import L63, L96M
 parser = argparse.ArgumentParser()
 parser.add_argument('--settings_path', type=str)
 FLAGS = parser.parse_args()
@@ -48,21 +48,23 @@ def get_settings(settings_path):
     settings["train_data_path"] = settings["data_pathname"]
     settings["test_data_path"] = settings["data_pathname"]
     settings["delta_t"] = settings["dt"]
-    if settings["f0_name"]=='L63':
+    pdb.set_trace()
+    ODE = locate('odelibrary.{}'.format(settings["f0_name"]))
+    if settings['f0_name']=='L96M':
         if settings["usef0"]:
-            physics1 = L63()
+            physics = ODE(slow_only=settings['slowOnly'])
+            settings["f0"] = lambda t, y: physics.rhs(y, t)
+        if settings["diff"]=="TrueDeriv":
+            raise ValueError("True Derivatives not yet setup for L96MS case")
+    else:
+        if settings["usef0"]:
+            physics1 = ODE()
             eps = settings['f0eps']
             physics1.b = physics1.b*(1+eps)
             settings["f0"] = lambda t, y: physics1.rhs(y, t)
         if settings["diff"]=="TrueDeriv":
-            physics2 = L63()
+            physics2 = ODE()
             settings["fTRUE"] = lambda t, y: physics2.rhs(y, t)
-    elif settings['f0_name']=='L96M':
-        if settings["usef0"]:
-            physics = L96M(slow_only=settings['slowOnly'])
-            settings["f0"] = lambda t, y: physics.rhs(y, t)
-        if settings["diff"]=="TrueDeriv":
-            raise ValueError("True Derivatives not yet setup for L96MS case")
     return settings
 
 if __name__ == '__main__':
