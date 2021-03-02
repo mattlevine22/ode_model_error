@@ -83,9 +83,9 @@ def declare_jobs(data_pathname, datagen_settings, output_dir, master_job_file, c
 
     ## rhs runs
     combined_settings = { 'modelType': ['rhs'],
-                 'diff': ['Euler', 'Spline'],
+                 'diff': ['Spline'],
                  'componentWise': [0, 1],
-                 'costIntegration': ['datagrid', 'interp'],
+                 'costIntegration': ['datagrid'],
                  'tTrain': [100],
                  'slowOnly': [1],
                  'rfDim': rfDim_list,
