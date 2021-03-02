@@ -61,13 +61,13 @@ def main(cmd_py, output_dir, cmd_job, datagen, conda_env, **kwargs):
             pickle.dump(summary_df, file, pickle.HIGHEST_PROTOCOL)
 
     if kwargs['mode']=='all':
-        lop = [['tTrain-20'], ['tTrain-30'], ['tTrain-40']
+        lop = [['trainNumber-0']
                ]
         prioritized_job_sender(all_job_fnames,
                                 bash_command=cmd_job,
                                 list_of_priorities=lop,
                                 do_all=True,
-                                noredo=False)
+                                noredo=True)
 
     run_summary(output_dir)
 
@@ -79,14 +79,14 @@ def declare_jobs(data_pathname, datagen_settings, output_dir, master_job_file, c
                         't_test': 20,
                         't_inv': 100}
 
-    f0eps_list = [0.2]
+    f0eps_list = [0.05]
     dt_list = [0.01]
-    rfDim_list = [200, 2000]
+    rfDim_list = [10000, 100000]
 
     ## rhs runs
     combined_settings = { 'modelType': ['rhs'],
-                 'diff': ['TrueDeriv','Euler', 'Spline'],
-                 'costIntegration': ['datagrid', 'interp'],
+                 'diff': ['Spline'],
+                 'costIntegration': ['datagrid'],
                  'tTrain': [10, 20, 30, 40, 50, 100, 250, 500],
                  'rfDim': rfDim_list,
                  'usef0': [0],
