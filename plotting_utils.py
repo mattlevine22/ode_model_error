@@ -86,13 +86,15 @@ def new_summary(df, fig_path, hue='Model', style='Uses $f_0$', x="$\epsilon$", y
                 ylabel=None,
                 xlabel=None,
                 title=None,
+                estimator=np.median,
+                ci='sd',
                 legloc='upper right'):
 
     font = {'size': fontsize}
     matplotlib.rc('font', **font)
 
     fig, ax = plt.subplots(nrows=1, ncols=1, figsize=figsize)
-    sns.lineplot(ax=ax, data=df, x=x, y=y, style=style, hue=hue, err_style='bars', linewidth=4)
+    sns.lineplot(ax=ax, data=df, estimator=estimator, ci=ci, x=x, y=y, style=style, hue=hue, err_style='bars', linewidth=4)
     if ylabel:
         ax.set_ylabel(ylabel)
     if xlabel:
@@ -118,7 +120,7 @@ def summarize(df, hue, style, output_dir, metric_list, x="f0eps", fname_shape='s
     for metric in metric_list:
         try:
             fig, ax = plt.subplots(nrows=1, ncols=1,figsize=figsize)
-            sns.lineplot(ax=ax, data=df, x=x, y=metric, style=style, hue=hue, err_style='bars', linewidth=4)
+            sns.lineplot(ax=ax, data=df, x=x, y=metric, style=style, hue=hue, err_style='bars', linewidth=4, ci='sd')
             fig_path = os.path.join(output_dir, fname_shape.format(metric))
             plt.savefig(fig_path)
             ax.set_yscale('log')
