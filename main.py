@@ -48,7 +48,6 @@ def get_settings(settings_path):
     settings["train_data_path"] = settings["data_pathname"]
     settings["test_data_path"] = settings["data_pathname"]
     settings["delta_t"] = settings["dt"]
-    pdb.set_trace()
     ODE = locate('odelibrary.{}'.format(settings["f0_name"]))
     if settings['f0_name']=='L96M':
         if settings["usef0"]:
