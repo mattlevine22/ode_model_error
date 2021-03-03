@@ -80,12 +80,12 @@ def declare_jobs(data_pathname, datagen_settings, output_dir, master_job_file, c
                         't_inv': 100}
 
     f0eps_list = [0.05]
-    dt_list = [0.001, 0.01, 0.018, 0.025, 0.05, 0.1, 0.2, 0.5, 1.0]
+    dt_list = [0.001, 0.01, 0.0125, 0.02, 0.025, 0.05, 0.1, 0.2, 0.5, 1.0]
 
     ## rhs runs
     combined_settings = { 'modelType': ['rhs'],
-                 'diff': ['TrueDeriv','Euler', 'Spline'],
-                 'costIntegration': ['datagrid', 'interp'],
+                 'diff': ['Spline'],
+                 'costIntegration': ['datagrid'],
                  'tTrain': [1000],
                  'usef0': [0],
                  'doResidual': [0],
