@@ -242,8 +242,7 @@ def generate_data(ode,
                 n_validate_traj,
     			delta_t,
                 data_pathname,
-                solver_type,
-                do_plots=True):
+                solver_type):
 
     # load solver dict
     solver_dict='./Config/solver_settings.json'
@@ -277,12 +276,20 @@ def generate_data(ode,
         print('took', '{:.2f}'.format((time() - tstart)/60),'minutes')
         return u
 
+    try:
+        gpr_predict = ode.predictor
+        figdir = os.path.join(os.path.dirname(data_pathname), 'GPFigures')
+        plot_io_characteristics(figdir=figdir, X=ode.X, y=ode.y)
+        figdir = os.path.join(os.path.dirname(data_pathname), 'GPFigures2')
+        plot_io_characteristics(figdir=figdir, X=ode.Xdense, gpr_predict=gpr_predict)
+    except:
+        gpr_predict = lambda x: 0
+
     # make 1 long inv-meas trajectory
     u_inv_meas = np.array([simulate_traj(T1=t_transient, T2=t_invariant_measure) for _ in range(1)])
 
-    if do_plots:
-        figdir = os.path.join(os.path.dirname(data_pathname), 'DataFigures')
-        plot_model_characteristics(figdir=figdir, X=u_inv_meas)
+    figdir = os.path.join(os.path.dirname(data_pathname), 'DataFigures')
+    plot_model_characteristics(figdir=figdir, X=u_inv_meas)
 
     # make many training trajectories
     u_train = np.array([simulate_traj(T1=t_transient, T2=t_train) for _ in range(n_train_traj)])
@@ -305,7 +312,8 @@ def generate_data(ode,
         "udot_train": udot_train,
         "udot_test": udot_test,
         "udot_validate": udot_validate,
-        "dt": delta_t
+        "dt": delta_t,
+        "gpr_error": gpr_predict
     }
 
     os.makedirs(os.path.dirname(data_pathname), exist_ok=True)

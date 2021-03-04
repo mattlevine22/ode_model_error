@@ -1,5 +1,8 @@
 import numpy as np
 from scipy.integrate import solve_ivp
+from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.gaussian_process.kernels import RBF, Matern, WhiteKernel, ConstantKernel
+
 # from matplotlib import pyplot
 # from numba import jitclass          # import the decorator
 # from numba import boolean, int64, float32, float64    # import the types
@@ -813,7 +816,7 @@ class L63:
   """
 
   def __init__(_s,
-      a = 10, b = 28, c = 8/3, share_gp=True, add_closure=False):
+      a = 10, b = 28, c = 8/3, share_gp=False, add_closure=False, random_closure=False):
     '''
     Initialize an instance: setting parameters and xkstar
     '''
@@ -826,6 +829,11 @@ class L63:
     _s.slow_only = False
     _s.exchangeable_states = False
     _s.add_closure = add_closure
+    _s.random_closure = random_closure
+
+    if _s.random_closure:
+        _s.add_closure = True
+        _s.set_random_predictor()
 
   def get_inits(_s):
     (xmin, xmax) = (-10,10)
@@ -898,8 +906,29 @@ class L63:
   def set_predictor(_s, predictor):
     _s.predictor = predictor
 
-  # def set_G0_predictor(_s):
-  #   _s.predictor = lambda x: _s.hy * x
+  def set_random_predictor(_s):
+
+    x1 = np.arange(-20, 20, 5)
+    x2 = np.arange(-25, 25, 5)
+    x3 = np.arange(5, 45, 5)
+    X = np.stack(np.meshgrid(x1, x2, x3), -1).reshape(-1, 3)
+
+    GP_ker = ConstantKernel(1.0, (1e-2, 1e5)) * RBF(10.0, (1e-2, 1e+6))
+    my_gpr = GaussianProcessRegressor(kernel = GP_ker, alpha=0, n_restarts_optimizer=10)
+    y = np.zeros(X.shape)
+    for k in range(_s.K):
+        y[:,k] = np.squeeze(my_gpr.sample_y(X, n_samples=1, random_state=k))
+    my_gpr.fit(X=X, y=y)
+    _s.set_predictor(my_gpr.predict)
+    _s.X = X
+    _s.y = y
+
+    # make a denser grid for evaluating the GP on
+    x1 = np.arange(-20, 20, 1)
+    x2 = np.arange(-25, 25, 1)
+    x3 = np.arange(5, 45, 1)
+    _s.Xdense = np.stack(np.meshgrid(x1, x2, x3), -1).reshape(-1, 3)
+
 
   def set_null_predictor(_s):
     _s.predictor = lambda x: 0

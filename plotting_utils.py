@@ -219,3 +219,44 @@ def plot_model_characteristics(figdir, X, fontsize=20):
             ax[x_out][x_in].set_ylabel('X_{}'.format(x_out))
     plt.savefig(fig_path)
     plt.close()
+
+
+def plot_io_characteristics(figdir, X, y=None, gpr_predict=None, fontsize=20):
+
+    if y is None:
+        y = gpr_predict(X)
+
+    os.makedirs(figdir, exist_ok=True)
+    font = {'size': fontsize}
+    matplotlib.rc('font', **font)
+
+    # Plot bivariate scatter
+    fig_path = os.path.join(figdir, "bivariate_scatter.png")
+    ndim = X.shape[1]
+    fig, ax = plt.subplots(nrows=ndim, ncols=ndim, figsize=(14, 14))
+    # x axis is INPUT dim for model
+    # y axis is OUTPUT dim for model
+    for x_in in range(ndim): #
+        for x_out in range(ndim):
+            ax[x_out][x_in].scatter(X[:,x_in], y[:,x_out])
+            ax[x_out][x_in].set_xlabel('Xin_{}'.format(x_in))
+            ax[x_out][x_in].set_ylabel('Yout_{}'.format(x_out))
+    plt.savefig(fig_path)
+    plt.close()
+
+    # Plot fancier thing
+    for y_out in range(ndim):
+        fig_path = os.path.join(figdir, "contour_{}.png".format(y_out))
+        fig, ax = plt.subplots(nrows=ndim, ncols=ndim, figsize=(14, 14))
+        # x axis is INPUT dim for model
+        # y axis is OUTPUT dim for model
+        for x_in1 in range(ndim): #
+            for x_in2 in range(ndim):
+                # xxin1, xxin2 = np.meshgrid(X[x_in1], X[_in2])
+                # ax[x_in2][x_in1].contourf(xxin1, xxin2, np.squeeze(y[:,y_out]))
+                ax[x_in2][x_in1].scatter(x=X[:,x_in1], y=X[:,x_in2], c=np.squeeze(y[:,y_out]), alpha=0.5)
+                ax[x_in2][x_in1].set_xlabel('Xin_{}'.format(x_in1))
+                ax[x_in2][x_in1].set_ylabel('Xin_{}'.format(x_in2))
+        fig.suptitle('GP field for output state {}'.format(y_out))
+        plt.savefig(fig_path)
+        plt.close()
