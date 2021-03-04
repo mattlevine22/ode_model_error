@@ -9,6 +9,7 @@ import subprocess
 import glob
 import itertools
 import pandas as pd
+from plotting_utils import *
 import pdb
 
 def optimizer_as_df(optimizer):
@@ -241,7 +242,8 @@ def generate_data(ode,
                 n_validate_traj,
     			delta_t,
                 data_pathname,
-                solver_type):
+                solver_type,
+                do_plots=True):
 
     # load solver dict
     solver_dict='./Config/solver_settings.json'
@@ -277,6 +279,10 @@ def generate_data(ode,
 
     # make 1 long inv-meas trajectory
     u_inv_meas = np.array([simulate_traj(T1=t_transient, T2=t_invariant_measure) for _ in range(1)])
+
+    if do_plots:
+        figdir = os.path.join(os.path.dirname(data_pathname), 'DataFigures')
+        plot_model_characteristics(figdir=figdir, X=u_inv_meas)
 
     # make many training trajectories
     u_train = np.array([simulate_traj(T1=t_transient, T2=t_train) for _ in range(n_train_traj)])

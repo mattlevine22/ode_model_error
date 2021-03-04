@@ -176,3 +176,46 @@ def plotMatrix(model, A, mat_name):
     ax[1].set_title('Distribution of matrix entries')
     plt.savefig(fig_path)
     plt.close()
+
+
+def plot_model_characteristics(figdir, X, fontsize=20):
+    os.makedirs(figdir, exist_ok=True)
+    font = {'size': fontsize}
+    matplotlib.rc('font', **font)
+
+    X = np.squeeze(X)
+    # Pool data and plot Inv Measure
+    fig_path = os.path.join(figdir, "inv_stats_POOL.png")
+    fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(14, 14))
+    sns.kdeplot(X.reshape(-1), ax=ax, linewidth=4)
+    plt.savefig(fig_path)
+    plt.close()
+
+    # Plot Invariant Measure of each state individually as a marginal
+    fig_path = os.path.join(figdir, "inv_stats_MARGINAL.png")
+    ndim = X.shape[1]
+    fig, ax = plt.subplots(nrows=1, ncols=ndim, figsize=(24, 14))
+    for x_in in range(ndim): #
+        sns.kdeplot(X[:,x_in], ax=ax[x_in], linewidth=4)
+        ax[x_in].set_xlabel('X_{}'.format(x_in))
+    plt.savefig(fig_path)
+    plt.close()
+
+    # Plot Invariant Measure of each state individually, plus bivariate scatter
+    fig_path = os.path.join(figdir, "inv_stats_BIVARIATE.png")
+    ndim = X.shape[1]
+    fig, ax = plt.subplots(nrows=ndim, ncols=ndim, figsize=(14, 14))
+    # x axis is INPUT dim for model
+    # y axis is OUTPUT dim for model
+    for x_in in range(ndim): #
+        for x_out in range(ndim):
+            if x_out==x_in:
+                sns.kdeplot(X[:,x_in], ax=ax[x_out][x_in], linewidth=4)
+                # ax[x_out][x_in].ksdensity(X[:,x_in])
+            else:
+                # sns.scatter(x=X[:,x_in], y=X[:,x_out], ax=ax[x_out][x_in])
+                ax[x_out][x_in].scatter(X[:,x_in], X[:,x_out])
+            ax[x_out][x_in].set_xlabel('X_{}'.format(x_in))
+            ax[x_out][x_in].set_ylabel('X_{}'.format(x_out))
+    plt.savefig(fig_path)
+    plt.close()
