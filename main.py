@@ -43,6 +43,9 @@ def get_settings(settings_path):
     settings = file_to_dict(settings_path)
     saving_path = os.path.dirname(settings_path)
 
+    if "experimentType" not in settings:
+        settings["experimentType"] = 'pathak'
+
     # add settings
     settings["saving_path"] = saving_path
     settings["train_data_path"] = settings["data_pathname"]
@@ -57,10 +60,14 @@ def get_settings(settings_path):
             raise ValueError("True Derivatives not yet setup for L96MS case")
     else:
         if settings["usef0"]:
-            physics1 = ODE()
-            eps = settings['f0eps']
-            physics1.b = physics1.b*(1+eps)
-            settings["f0"] = lambda t, y: physics1.rhs(y, t)
+            if settings["experimentType"]=='pathak':
+                physics1 = ODE()
+                eps = settings['f0eps']
+                physics1.b = physics1.b*(1+eps)
+                settings["f0"] = lambda t, y: physics1.rhs(y, t)
+            elif settings["experimentType"]=='GPerror':
+                physics1 = ODE(random_closure=True, epsGP=settings['f0eps'])
+                settings["f0"] = lambda t, y: physics1.rhs(y, t)
         if settings["diff"]=="TrueDeriv":
             physics2 = ODE()
             settings["fTRUE"] = lambda t, y: physics2.rhs(y, t)

@@ -277,6 +277,7 @@ def generate_data(ode,
         return u
 
     try:
+        ode.set_random_predictor()
         gpr_predict = ode.predictor
         figdir = os.path.join(os.path.dirname(data_pathname), 'GPFigures')
         plot_io_characteristics(figdir=figdir, X=ode.X, y=ode.y)

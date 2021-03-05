@@ -816,7 +816,7 @@ class L63:
   """
 
   def __init__(_s,
-      a = 10, b = 28, c = 8/3, share_gp=False, add_closure=False, random_closure=False):
+      a = 10, b = 28, c = 8/3, epsGP=1, share_gp=False, add_closure=False, random_closure=False):
     '''
     Initialize an instance: setting parameters and xkstar
     '''
@@ -824,6 +824,7 @@ class L63:
     _s.a = a
     _s.b = b
     _s.c = c
+    _s.epsGP = epsGP
     _s.K = 3 # state dims
     _s.hx = 1 # just useful when re-using L96 code
     _s.slow_only = False
@@ -870,7 +871,7 @@ class L63:
     foo_rhs[2] = -c*z + x*y
 
     if _s.add_closure:
-        foo_rhs += _s.simulate(S)
+        foo_rhs += (_s.epsGP * _s.simulate(S))
     return foo_rhs
 
   def regressed(_s, x, t):
