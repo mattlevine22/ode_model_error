@@ -14,7 +14,7 @@ parser.add_argument('--mode', default='all', type=str)
 parser.add_argument('--datagen', default=1, type=int)
 parser.add_argument('--regen', default=0, type=int)
 parser.add_argument('--cmd_py', default='python3 main.py', type=str)
-parser.add_argument('--output_dir', default='/groups/astuart/mlevine/ode_model_error/experiments/l63eps_v5_eps_validateAll/', type=str)
+parser.add_argument('--output_dir', default='/groups/astuart/mlevine/ode_model_error/experiments/l63eps_v5_epsGP_validateReg/', type=str)
 parser.add_argument('--cmd_job', default='bash', type=str)
 parser.add_argument('--conda_env', default='', type=str)
 parser.add_argument('--hours', default=2, type=int)
@@ -79,7 +79,8 @@ def declare_jobs(data_pathname, datagen_settings, output_dir, master_job_file, c
                         'input_dim': 3,
                         't_test': 20,
                         't_inv': 100,
-                        'validate_regularization': 1}
+                        'validate_regularization': 1,
+                        'validate_rf': 0}
 
     f0eps_list = [0.001, 0.01, 0.1, 1]
     ## rhs runs
