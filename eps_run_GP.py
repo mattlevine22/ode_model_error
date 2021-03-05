@@ -17,7 +17,7 @@ parser.add_argument('--cmd_py', default='python3 main.py', type=str)
 parser.add_argument('--output_dir', default='/groups/astuart/mlevine/ode_model_error/experiments/l63eps_v5_epsGP_validateReg/', type=str)
 parser.add_argument('--cmd_job', default='bash', type=str)
 parser.add_argument('--conda_env', default='', type=str)
-parser.add_argument('--hours', default=2, type=int)
+parser.add_argument('--hours', default=6, type=int)
 FLAGS = parser.parse_args()
 
 
@@ -67,7 +67,7 @@ def main(cmd_py, output_dir, cmd_job, datagen, conda_env, **kwargs):
                                 bash_command=cmd_job,
                                 list_of_priorities=lop,
                                 do_all=True,
-                                noredo=True)
+                                noredo=False)
 
     run_summary(output_dir)
 
@@ -82,7 +82,7 @@ def declare_jobs(data_pathname, datagen_settings, output_dir, master_job_file, c
                         'validate_regularization': 1,
                         'validate_rf': 0}
 
-    f0eps_list = [0.001, 0.01, 0.1, 1]
+    f0eps_list = [0.001, 0.01, 0.1, 1, 10]
     ## rhs runs
     combined_settings = { 'modelType': ['rhs'],
                  'diff': ['Spline'],
