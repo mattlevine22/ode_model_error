@@ -894,7 +894,10 @@ class IDK(object):
 			print('Inversion MSE for lambda_RF={lrf} is {mse} with normalized |Wout|={nrm}'.format(lrf=self.regularization_RF, mse=mse, nrm=np.mean(W_out_all**2)))
 
 		if do_plots:
-			self.plotModel()
+			try:
+				self.plotModel()
+			except:
+				print('plotModel failed!!!')
 
 
 	def get_regression_IO(self):
@@ -983,6 +986,8 @@ class IDK(object):
 		elif self.componentWise and self.f0_name=='L96M':
 			x_grid = np.arange(-8,13,0.01)
 			x_grid_scaled_mat = self.scaler.scaleData(x_grid, reuse=1)[None,:]
+			if self.stateType=='stateAndPred':
+				x_grid_scaled_mat = np.vstack((x_grid_scaled_mat, x_grid_scaled_mat))
 			bh_mat = np.tile(self.b_h_markov, len(x_grid))
 			if 'GP' in self.modelType:
 				hY = self.gpr.predict(x_grid_scaled_mat)
