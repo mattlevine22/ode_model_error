@@ -54,14 +54,21 @@ def new_box(df, fig_path,
             ylabel=None,
             xlabel=None,
             title=None,
-            legloc='upper right'):
+            rotation=20,
+            legloc='upper right',
+            ax=None):
 
     font = {'size': fontsize}
     matplotlib.rc('font', **font)
 
-    fig, ax = plt.subplots(nrows=1, ncols=1,figsize=figsize)
+    if ax is None:
+        return_ax = False
+        fig, ax = plt.subplots(nrows=1, ncols=1,figsize=figsize)
+    else:
+        return_ax = True
+
     sns.boxplot(ax=ax, data=df, x=x, y=y, order=order)
-    ax.set_xticklabels(ax.get_xticklabels(), rotation=20, horizontalalignment='right', fontsize='large')
+    ax.set_xticklabels(ax.get_xticklabels(), rotation=rotation, horizontalalignment='right', fontsize='large')
     if ylabel:
         ax.set_ylabel(ylabel)
     if xlabel:
@@ -71,13 +78,16 @@ def new_box(df, fig_path,
     # ax.legend(loc=legloc, fontsize=fontsize)
 
     # fig.subplots_adjust(wspace=0.3, hspace=0.3)
-    fig.subplots_adjust(bottom=0.15, left=0.15)
 
-
-    plt.savefig(fig_path)
-    ax.set_yscale('log')
-    plt.savefig(fig_path + '_ylog')
-    plt.close()
+    if return_ax:
+        ax.set_yscale('log')
+        return ax
+    else:
+        fig.subplots_adjust(bottom=0.15, left=0.15)
+        plt.savefig(fig_path)
+        ax.set_yscale('log')
+        plt.savefig(fig_path + '_ylog')
+        plt.close()
 
 
 def new_summary(df, fig_path, hue='Model', style='Uses $f_0$', x="$\epsilon$", y='t_valid_005',
