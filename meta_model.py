@@ -991,13 +991,22 @@ class IDK(object):
 			if 'Psi' in self.modelType:
 				x_output /= self.dt
 				hY /= self.dt
+			hY = np.squeeze(hY)
 
 			fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(12, 12))
 
-			ax.plot(x_grid, np.squeeze(hY), color='blue', linewidth=4)
+			ax.plot(x_grid, hY, color='blue', linewidth=4)
 			ax.scatter(x_input_descaled.reshape(-1), x_output.T.reshape(-1))
 			ax.set_xlabel('X_k')
 			ax.set_ylabel('hY')
+
+			# save plotted data for re-plotting later!
+			data = [{'x_model': x_grid,
+					 'hY_model': hY,
+					 'x_data': x_input_descaled.reshape(-1),
+					 'hY_data': x_output.T.reshape(-1)}]
+			self.write_stats(data, "training_fit_data")
+
 
 		plt.suptitle('Model Fit')
 		plt.savefig(fig_path)
