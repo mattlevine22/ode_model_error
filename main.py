@@ -64,10 +64,12 @@ def get_settings(settings_path):
                 physics1 = ODE()
                 eps = settings['f0eps']
                 physics1.b = physics1.b*(1+eps)
-                settings["f0"] = lambda t, y: physics1.rhs(y, t)
             elif settings["experimentType"]=='GPerror':
                 physics1 = ODE(random_closure=True, epsGP=settings['f0eps'])
-                settings["f0"] = lambda t, y: physics1.rhs(y, t)
+            elif settings["experimentType"]=='wrongModel':
+                physics1 = ODE()
+            settings["f0"] = lambda t, y: physics1.rhs(y, t)
+
         if settings["diff"]=="TrueDeriv":
             physics2 = ODE()
             settings["fTRUE"] = lambda t, y: physics2.rhs(y, t)
