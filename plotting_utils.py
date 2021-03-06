@@ -17,7 +17,9 @@ from matplotlib import rc
 from matplotlib  import cm
 import pickle
 from matplotlib import colors
+from matplotlib.colors import Normalize
 import six
+from scipy.interpolate import interpn
 color_dict = dict(six.iteritems(colors.cnames))
 
 # font = {'size': 16}
@@ -27,6 +29,40 @@ color_dict = dict(six.iteritems(colors.cnames))
 
 
 import pdb
+
+def density_scatter( x , y, ax = None, sort = True, bins = 20, do_cbar=False, n_subsample=None, **kwargs )   :
+    """
+    Scatter plot colored by 2d histogram
+    https://stackoverflow.com/questions/20105364/how-can-i-make-a-scatter-plot-colored-by-density-in-matplotlib
+    """
+    if ax is None :
+        fig , ax = plt.subplots()
+
+    if n_subsample:
+        inds = np.random.choice(len(x), replace=False, size=n_subsample)
+        x = x[inds]
+        y = y[inds]
+    data , x_e, y_e = np.histogram2d( x, y, bins = bins, density = True )
+    z = interpn( ( 0.5*(x_e[1:] + x_e[:-1]) , 0.5*(y_e[1:]+y_e[:-1]) ) , data , np.vstack([x,y]).T , method = "splinef2d", bounds_error = False)
+
+    #To be sure to plot all data
+    z[np.where(np.isnan(z))] = 0.0
+
+    # Sort the points by density, so that the densest points are plotted last
+    if sort :
+        idx = z.argsort()
+        x, y, z = x[idx], y[idx], z[idx]
+
+    ax.scatter( x, y, c=z, **kwargs )
+
+    norm = Normalize(vmin = np.min(z), vmax = np.max(z))
+    if do_cbar:
+        cbar = fig.colorbar(cm.ScalarMappable(norm = norm), ax=ax)
+        cbar.ax.set_ylabel('Density')
+
+    return ax
+
+
 
 def box(df, output_dir, metric_list, x="model_name", fname_shape='summary_eps_{}', figsize=(24, 20)):
     for metric in metric_list:
