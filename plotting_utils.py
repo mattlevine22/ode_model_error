@@ -4,7 +4,7 @@ import numpy as np
 from scipy.linalg import svdvals, eigvals
 from scipy.sparse.linalg import svds as sparse_svds
 from scipy.sparse.linalg import eigs as sparse_eigs
-
+import itertools
 
 # Plotting parameters
 import matplotlib
@@ -306,3 +306,24 @@ def plot_io_characteristics(figdir, X, y=None, gpr_predict=None, fontsize=20):
         fig.suptitle('GP field for output state {}'.format(y_out))
         plt.savefig(fig_path)
         plt.close()
+
+    # Plot 1 big good plot for paper
+    # get combinations
+    fig_path = os.path.join(figdir, "contour_all.png")
+    ax_combs = list(itertools.combinations(np.arange(ndim),2))
+
+    fig, ax = plt.subplots(nrows=ndim, ncols=len(ax_combs), figsize=(14, 14))
+    for y_out in range(ndim):
+        # plot permutations
+        cc = -1
+        for x_in1, x_in2 in ax_combs:
+            cc += 1
+            cbar = ax[y_out][cc].scatter(x=X[:,x_in1], y=X[:,x_in2], c=np.squeeze(y[:,y_out]), alpha=0.5)
+            ax[y_out][cc].set_xlabel(r'$X^{{in}}_{0}$'.format(x_in1), fontstyle='italic')
+            ax[y_out][cc].set_ylabel(r'$X^{{in}}_{0}$'.format(x_in2), fontstyle='italic', rotation=0)
+            ax[y_out][cc].set_title(r'$\mathbf{{X^{{out}}_{0}}}$'.format(y_out), fontweight='bold', fontsize=24)
+    fig.subplots_adjust(wspace=0.3, hspace=0.6)
+    plt.colorbar(cbar, ax=ax[y_out][cc])
+    plt.savefig(fig_path)
+    pdb.set_trace()
+    plt.close()
