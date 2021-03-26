@@ -953,6 +953,151 @@ class L63:
 ################################################################################
 
 
+class WATERWHEEL:
+  """
+  A simple class that implements the chaotic waterwheel approximation of Lorenz 63 model
+  see https://www.math.hmc.edu/~dyong/math164/2006/moyerman/finalreport.pdf
+  The class computes RHS's to make use of scipy's ODE solvers.
+  The water wheel equations give a good approximation for L63 with b=1 (not 8/3),
+  yielding validity time of ~15 model time units
+
+  Parameters:
+    K_leak, I, g, r, nu, q1
+
+  """
+
+  def __init__(_s,
+      K_leak = 1, I = 1, g = 1, r = 1,
+      nu = None, q1 = None,
+      sigma_l63 = 10, r_l63 = 28,
+      epsGP=1, share_gp=False, add_closure=False, random_closure=False):
+    '''
+    Initialize an instance: setting parameters and xkstar
+    '''
+    _s.share_gp = share_gp
+    _s.K_leak = K_leak
+    _s.g = g
+    _s.r = r
+    _s.I = I
+    if q1 is not None:
+        _s.q1 = q1
+    else:
+        _s.q1 = r_l63 * K_leak**2 * nu / (np.pi*g*r)
+    if nu is not None:
+        _s.nu = nu
+    else:
+        _s.nu = sigma_l63 * K_leak * I
+
+    _s.epsGP = epsGP
+    _s.K = 3 # state dims
+    _s.hx = 1 # just useful when re-using L96 code
+    _s.slow_only = False
+    _s.exchangeable_states = False
+    _s.add_closure = add_closure
+    _s.random_closure = random_closure
+
+    if _s.random_closure:
+        _s.add_closure = True
+        _s.set_random_predictor()
+
+  def get_inits(_s):
+    (xmin, xmax) = (-10,10)
+    (ymin, ymax) = (-20,30)
+    (zmin, zmax) = (10,40)
+
+    xrand = xmin+(xmax-xmin)*np.random.random()
+    yrand = ymin+(ymax-ymin)*np.random.random()
+    zrand = zmin+(zmax-zmin)*np.random.random()
+    state_inits = np.array([xrand, yrand, zrand])
+    return state_inits
+
+  def get_state_names(_s):
+    return ['a1','b1','omega']
+
+  def plot_state_indices(_s):
+    return [0,1,2]
+
+  def slow(_s, y, t):
+    return _s.rhs(y,t)
+
+  def rhs(_s, S, t):
+    ''' Full system RHS
+    from https://www.math.hmc.edu/~dyong/math164/2006/moyerman/finalreport.pdf'''
+    K_leak = _s.K_leak # leakage rate
+    q1 = _s.q1 #first fourier coefficient for Q, the rate at which water is pumped into the chambers
+    nu = _s.nu #rotational damping rate
+    g = _s.g #gravity
+    r = _s.r #radius of the wheel
+    I = _s.I #moment of inertia of the wheel
+    a1 = S[0]
+    b1 = S[1]
+    omega = S[2] #angular velocity of the wheel
+
+    foo_rhs = np.empty(3)
+    foo_rhs[0] = omega*b1 - K_leak*a1
+    foo_rhs[1] = -omega*a1 - K_leak*b1 + q1
+    foo_rhs[2] = (-nu*omega + np.pi*g*r*a1) / I
+
+    if _s.add_closure:
+        foo_rhs += (_s.epsGP * _s.simulate(S))
+    return foo_rhs
+
+  def regressed(_s, x, t):
+    ''' Only slow variables with RHS learned from data '''
+    rhs = _s.rhs(x,t)
+    # add data-learned coupling term
+    rhs += _s.simulate(x)
+    return rhs
+
+  def set_stencil(_s, left = 0, right = 0):
+    _s.stencil = np.arange(left, 1 + right)
+
+  def single_step_implied_Ybar(_s, Xnow, Xnext, delta_t):
+    # use an euler scheme to back-out the implied avg Ybar_t from X_t and X_t+1
+    Ybar = (Xnext - Xnow)/delta_t - _s.rhs(S=Xnow, t=None)
+
+    return Ybar
+
+  def implied_Ybar(_s, X_in, X_out, delta_t):
+    # the idea is that X_in are true data coming from a test/training set
+    # Xout(k) is the 1-step-ahed prediction associated to Xin(k).
+    # In other words Xout(k) = Psi-ML(Xin(k))
+    T = X_in.shape[0]
+    Ybar = np.zeros( (T, _s.K) )
+    for t in range(T):
+      Ybar[t,:] = _s.single_step_implied_Ybar(Xnow=X_in[t,:], Xnext=X_out[t,:], delta_t=delta_t)
+    return Ybar
+
+  def get_state_limits(_s):
+    lims = (None,None)
+    return lims
+
+  def set_predictor(_s, predictor):
+    _s.predictor = predictor
+
+  def set_null_predictor(_s):
+    _s.predictor = lambda x: 0
+
+  def simulate(_s, slow):
+    if _s.share_gp:
+      return np.reshape(_s.predictor(_s.apply_stencil(slow)), (-1,))
+    else:
+      return np.reshape(_s.predictor(slow.reshape(1,-1)), (-1,))
+
+  def apply_stencil(_s, slow):
+    # behold: the blackest of all black magic!
+    # (in a year, I will not understand what this does)
+    # the idea: shift xk's so that each row corresponds to the stencil:
+    # (x_{k-1}, x_{k}, x_{k+1}), for example,
+    # based on '_s.stencil' and 'slow' array (which is (x1,...,xK) )
+    return slow[np.add.outer(np.arange(_s.K), _s.stencil) % _s.K]
+
+################################################################################
+# end of WATERWHEEL ##################################################################
+################################################################################
+
+
+
 class CHUA:
   """
   A simple class that implements Chua's circuit model
