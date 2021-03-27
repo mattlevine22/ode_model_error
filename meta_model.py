@@ -586,7 +586,7 @@ class IDK(object):
 		nlags = int(self.Tacf/self.dt) - 1
 		acfgrid = np.arange(0, self.Tacf, self.dt)
 
-		if self.f0_name in ['L63','CHUA']:
+		if self.f0_name in ['L63','CHUA','WATERWHEEL']:
 			ncols = self.input_dim
 			data = []
 			for k in range(self.input_dim):
@@ -957,7 +957,7 @@ class IDK(object):
 
 		rf_input, x_output, x_input_descaled = self.get_regression_IO()
 
-		if not self.componentWise and self.f0_name in ['L63', 'CHUA']:
+		if not self.componentWise and self.f0_name in ['L63', 'CHUA', 'WATERWHEEL']:
 			if 'GP' in self.modelType:
 				rf_output = self.gpr.predict(rf_input)
 			else:
