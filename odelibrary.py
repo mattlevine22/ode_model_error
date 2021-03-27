@@ -979,14 +979,12 @@ class WATERWHEEL:
     _s.g = g
     _s.r = r
     _s.I = I
-    if q1 is not None:
-        _s.q1 = q1
-    else:
-        _s.q1 = r_l63 * K_leak**2 * nu / (np.pi*g*r)
-    if nu is not None:
-        _s.nu = nu
-    else:
-        _s.nu = sigma_l63 * K_leak * I
+    if nu is None:
+        nu = sigma_l63 * K_leak * I
+    _s.nu = nu
+    if q1 is None:
+        q1 = r_l63 * K_leak**2 * nu / (np.pi*g*r)
+    _s.q1 = q1
 
     _s.epsGP = epsGP
     _s.K = 3 # state dims
