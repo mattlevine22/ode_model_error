@@ -986,6 +986,7 @@ class WATERWHEEL:
         q1 = r_l63 * K_leak**2 * nu / (np.pi*g*r)
     _s.q1 = q1
 
+    _s.has_diverged = False
     _s.epsGP = epsGP
     _s.K = 3 # state dims
     _s.hx = 1 # just useful when re-using L96 code
@@ -1018,9 +1019,11 @@ class WATERWHEEL:
   def slow(_s, y, t):
     return _s.rhs(y,t)
 
-  def divergent(_s, S):
+  def is_divergent(_s, S):
     ''' define kill switch for when integration has blown up'''
-    return any(S > 100)
+    if not _s.has_diverged:
+        _s.has_diverged = any(np.abs(S) > 100)
+    return _s.has_diverged
 
   def rhs(_s, S, t):
     ''' Full system RHS
@@ -1035,7 +1038,7 @@ class WATERWHEEL:
     b1 = S[1]
     omega = S[2] #angular velocity of the wheel
 
-    if _s.divergent(S):
+    if _s.is_divergent(S):
         return np.zeros(3)
 
     foo_rhs = np.empty(3)
