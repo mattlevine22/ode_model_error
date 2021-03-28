@@ -1019,7 +1019,7 @@ class WATERWHEEL:
     return _s.rhs(y,t)
 
   def divergent(_s, S):
-      ''' define kill switch for when integration has blown up'''
+    ''' define kill switch for when integration has blown up'''
     return any(S > 100)
 
   def rhs(_s, S, t):
