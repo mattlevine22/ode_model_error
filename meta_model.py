@@ -447,7 +447,6 @@ class IDK(object):
 			N = int(t_end / self.dt_test) + 1
 			t_eval = self.dt_test*np.arange(N)
 			t_span = [t_eval[0], t_eval[-1]]
-			pdb.set_trace()
 			prediction = my_solve_ivp(ic=ic, f_rhs=self.rhs, t_eval=t_eval, t_span=t_span, settings=self.solver_settings)
 			prediction = prediction[1:]
 		return prediction
