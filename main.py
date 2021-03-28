@@ -1,6 +1,7 @@
 import os, sys
 import numpy as np
 import argparse
+import time
 from meta_model import *
 from utils import *
 import pdb
@@ -37,6 +38,7 @@ def main():
     if new_run or model.retest:
         print('Begin testing!')
         model.test()
+
 
 def get_settings(settings_path):
     # read in settings
@@ -76,4 +78,7 @@ def get_settings(settings_path):
     return settings
 
 if __name__ == '__main__':
+	start_time = time.time()
 	main()
+    total_time = time.time() - start_time
+	print("Total run time is {:2.2f} minutes".format(total_time/60))
