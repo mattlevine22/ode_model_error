@@ -80,7 +80,7 @@ def declare_jobs(data_pathname, datagen_settings, output_dir, master_job_file, c
                         't_test': 20,
                         't_inv': 100,
                         'validate_regularization': 1,
-                        'validate_rf': 0}
+                        'validate_rf': 1}
 
     f0eps_list = [0.001, 0.01, 0.1, 1, 10]
     ## rhs runs
