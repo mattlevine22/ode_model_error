@@ -873,6 +873,11 @@ class IDK(object):
 	def doNewSolving(self, do_plots=True):
 		if 'GP' not in self.modelType:
 			print('Solving inverse problem W = (Z+rI)^-1 Y...')
+			print('lambda_RF={lrf} \nb_RF={brf} \nw_RF={wrt}'.format(
+					lrf=self.regularization_RF,
+					brf=self.rf_bias_bound,
+					wrf=self.rf_Win_bound))
+
 			# regI = np.identity(self.Z.shape[0])
 			regI = np.identity(self.reg_dim)
 			regI *= self.regularization_RF
@@ -891,7 +896,8 @@ class IDK(object):
 			# Compute residuals from inversion
 			res = (self.Z + regI) @ W_out_all.T - self.Y
 			mse = np.mean(res**2)
-			print('Inversion MSE for lambda_RF={lrf} is {mse} with normalized |Wout|={nrm}'.format(lrf=self.regularization_RF, mse=mse, nrm=np.mean(W_out_all**2)))
+			print('Inversion MSE is {mse} with normalized |Wout|={nrm}'.format(
+					mse=mse, nrm=np.mean(W_out_all**2)))
 
 		if do_plots:
 			try:
