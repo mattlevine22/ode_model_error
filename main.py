@@ -78,7 +78,7 @@ def get_settings(settings_path):
     return settings
 
 if __name__ == '__main__':
-	start_time = time.time()
-	main()
+    start_time = time.time()
+    main()
     total_time = time.time() - start_time
-	print("Total run time is {:2.2f} minutes".format(total_time/60))
+    print("Total run time is {:2.2f} minutes".format(total_time/60))
