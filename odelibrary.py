@@ -1023,6 +1023,8 @@ class WATERWHEEL:
     ''' define kill switch for when integration has blown up'''
     if not _s.has_diverged:
         _s.has_diverged = any(np.abs(S) > 100)
+        if _s.has_diverged:
+            print('INTEGRATION HAS DIVERGED!!!', S)
     return _s.has_diverged
 
   def rhs(_s, S, t):
