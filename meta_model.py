@@ -873,7 +873,7 @@ class IDK(object):
 	def doNewSolving(self, do_plots=True):
 		if 'GP' not in self.modelType:
 			print('Solving inverse problem W = (Z+rI)^-1 Y...')
-			print('lambda_RF={lrf} \nb_RF={brf} \nw_RF={wrt}'.format(
+			print('lambda_RF={lrf} \nb_RF={brf} \nw_RF={wrf}'.format(
 					lrf=self.regularization_RF,
 					brf=self.rf_bias_bound,
 					wrf=self.rf_Win_bound))
