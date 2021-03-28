@@ -1018,6 +1018,10 @@ class WATERWHEEL:
   def slow(_s, y, t):
     return _s.rhs(y,t)
 
+  def divergent(_s, S):
+      ''' define kill switch for when integration has blown up'''
+    return any(S > 100)
+
   def rhs(_s, S, t):
     ''' Full system RHS
     from https://www.math.hmc.edu/~dyong/math164/2006/moyerman/finalreport.pdf'''
@@ -1030,6 +1034,9 @@ class WATERWHEEL:
     a1 = S[0]
     b1 = S[1]
     omega = S[2] #angular velocity of the wheel
+
+    if _s.divergent(S):
+        return np.zeros(3)
 
     foo_rhs = np.empty(3)
     foo_rhs[0] = omega*b1 - K_leak*a1
