@@ -325,5 +325,4 @@ def plot_io_characteristics(figdir, X, y=None, gpr_predict=None, fontsize=20):
     fig.subplots_adjust(wspace=0.3, hspace=0.6)
     plt.colorbar(cbar, ax=ax[y_out][cc])
     plt.savefig(fig_path)
-    pdb.set_trace()
     plt.close()
