@@ -185,6 +185,10 @@ class IDK(object):
 			print("Optimal parameters:", best_param_dict, '(quality = {})'.format(best_quality))
 			# re-setup things with optimal parameters (new realization using preferred hyperparams)
 			self.set_BO_keyval(best_param_dict)
+			# plot results from validation runs
+			df = optimizer_as_df(optimizer)
+			self.makeValidationPlots(df=df, plot_nm='hyperparams')
+
 
 		# create Y, Z using chosen RF-parameters
 		self.setup_the_learning()
