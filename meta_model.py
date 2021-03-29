@@ -179,7 +179,7 @@ class IDK(object):
 			optimizer.subscribe(Events.OPTIMIZATION_STEP, logger)
 			# for log_reg_rf in log_reg_list:
 			# 	optimizer.probe(params={"log_regularization_RF": log_reg_rf}, lazy=True)
-			optimizer.maximize(init_points=5, n_iter=30, acq='ucb')
+			optimizer.maximize(init_points=2, n_iter=2, acq='ucb')
 			best_param_dict = optimizer.max['params']
 			best_quality = optimizer.max['target']
 			print("Optimal parameters:", best_param_dict, '(quality = {})'.format(best_quality))
@@ -547,13 +547,26 @@ class IDK(object):
 
 	def makeValidationPlots(self, df, plot_nm=''):
 		x_names = df.columns[df.columns!='target']
-		for i in range(len(x_names)):
-			xnm = x_names[i]
-			fig_path = os.path.join(self.fig_dir, "validation_{}_{}.png".format(plot_nm, xnm))
+		n_vars = len(x_names)
+		if n_vars!=2:
+			for i in range(n_vars):
+				xnm = x_names[i]
+				fig_path = os.path.join(self.fig_dir, "validation_{}_{}.png".format(plot_nm, xnm))
+				fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(12, 12))
+				ax.scatter(df[xnm], df.target, color='blue')
+				ax.set_xlabel(xnm)
+				ax.set_ylabel('target')
+				plt.suptitle('Validation Plots')
+				plt.savefig(fig_path)
+				plt.close()
+		else:
+			# plot scatter heatmap
+			fig_path = os.path.join(self.fig_dir, "validation_{}.png".format(plot_nm))
 			fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(12, 12))
-			ax.scatter(df[xnm], df.target, color='blue')
-			ax.set_xlabel(xnm)
-			ax.set_ylabel('target')
+			pdb.set_trace()
+			ax.scatter(x=df[x_names[0]], y=df[x_names[1]], s=df.target, c=df.target)
+			ax.set_xlabel(x_names[0])
+			ax.set_ylabel(x_names[1])
 			plt.suptitle('Validation Plots')
 			plt.savefig(fig_path)
 			plt.close()
