@@ -169,8 +169,8 @@ class IDK(object):
 			# switch to lowfi quadrature for cheap validation runs
 
 			# first learn W, b using default regularization
-			pbounds = {'rf_Win_bound': (0,10),
-						'rf_bias_bound': (0,20)}
+			pbounds = {'log_rf_Win_bound': (-2,1.2), #0.01 - 16
+						'log_rf_bias_bound': (-2,1.2)}
 			optimizer = BayesianOptimization(f=self.validation_function,
 											pbounds=pbounds,
 											random_state=1)
