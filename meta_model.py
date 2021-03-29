@@ -179,7 +179,7 @@ class IDK(object):
 			optimizer.subscribe(Events.OPTIMIZATION_STEP, logger)
 			# for log_reg_rf in log_reg_list:
 			# 	optimizer.probe(params={"log_regularization_RF": log_reg_rf}, lazy=True)
-			optimizer.maximize(init_points=2, n_iter=2, acq='ucb')
+			optimizer.maximize(init_points=5, n_iter=30, acq='ucb')
 			best_param_dict = optimizer.max['params']
 			best_quality = optimizer.max['target']
 			print("Optimal parameters:", best_param_dict, '(quality = {})'.format(best_quality))
@@ -563,8 +563,8 @@ class IDK(object):
 			# plot scatter heatmap
 			fig_path = os.path.join(self.fig_dir, "validation_{}.png".format(plot_nm))
 			fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(12, 12))
-			pdb.set_trace()
-			ax.scatter(x=df[x_names[0]], y=df[x_names[1]], s=df.target, c=df.target)
+			sizes = ( 10 + 30 * ( ( df.target - df.target.min() ) / ( df.target.max() - df.target.min() ) ) )**2
+			ax.scatter(x=df[x_names[0]], y=df[x_names[1]], s=sizes, c=df.target, alpha=0.5)
 			ax.set_xlabel(x_names[0])
 			ax.set_ylabel(x_names[1])
 			plt.suptitle('Validation Plots')
