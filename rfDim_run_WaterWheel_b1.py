@@ -90,7 +90,7 @@ def declare_jobs(data_pathname, datagen_settings, output_dir, master_job_file, c
                  'diff': ['Spline'],
                  'costIntegration': ['datagrid'],
                  'rfDim': rfDim_list,
-                 'tTrain': [100],
+                 'tTrain': [100, 10],
                  'usef0': [0],
                  'doResidual': [0],
                  'stateType': ['state'],
