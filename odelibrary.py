@@ -831,6 +831,7 @@ class L63:
     _s.exchangeable_states = False
     _s.add_closure = add_closure
     _s.random_closure = random_closure
+    _s.has_diverged = False
 
     if _s.random_closure:
         _s.add_closure = True
@@ -856,6 +857,14 @@ class L63:
   def slow(_s, y, t):
     return _s.rhs(y,t)
 
+  def is_divergent(_s, S):
+    ''' define kill switch for when integration has blown up'''
+    if not _s.has_diverged:
+        _s.has_diverged = any(np.abs(S) > 200)
+        if _s.has_diverged:
+            print('INTEGRATION HAS DIVERGED!!!', S)
+    return _s.has_diverged
+
   def rhs(_s, S, t):
     ''' Full system RHS '''
     a = _s.a
@@ -864,6 +873,9 @@ class L63:
     x = S[0]
     y = S[1]
     z = S[2]
+
+    if _s.is_divergent(S):
+        return np.zeros(3)
 
     foo_rhs = np.empty(3)
     foo_rhs[0] = -a*x + a*y
