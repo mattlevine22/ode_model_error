@@ -77,7 +77,9 @@ def declare_jobs(data_pathname, datagen_settings, output_dir, master_job_file, c
                         'f0_name': 'L63',
                         'input_dim': 3,
                         't_test': 20,
-                        't_inv': 100}
+                        't_inv': 100,
+                        'validate_regularization': 1,
+                        'validate_rf': 0}
 
     f0eps_list = [0.05]
     dt_list = [0.001, 0.01, 0.0125, 0.02, 0.025, 0.05, 0.1, 0.2, 0.5, 1.0]
@@ -99,6 +101,11 @@ def declare_jobs(data_pathname, datagen_settings, output_dir, master_job_file, c
     # hybrid rhs runs
     combined_settings['usef0'] = [1]
     combined_settings['f0eps'] = f0eps_list
+
+    # PINN run
+    combined_settings['regularizationType'] = ['Physics']
+    all_job_fnames += queue_joblist(combined_settings=combined_settings, shared_settings=shared_settings, output_dir=output_dir, master_job_file=master_job_file, cmd=cmd_py, conda_env=conda_env, hours=hours)
+    combined_settings.pop('regularizationType')
 
     combined_settings['doResidual'] = [1]
     combined_settings['stateType'] = ['state']
