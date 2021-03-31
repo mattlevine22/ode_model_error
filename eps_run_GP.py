@@ -103,7 +103,7 @@ def declare_jobs(data_pathname, datagen_settings, output_dir, master_job_file, c
     combined_settings['f0eps'] = f0eps_list
 
     # PINN run
-    combined_settings['regularizationType'] = 'Physics'
+    combined_settings['regularizationType'] = ['Physics']
     all_job_fnames += queue_joblist(combined_settings=combined_settings, shared_settings=shared_settings, output_dir=output_dir, master_job_file=master_job_file, cmd=cmd_py, conda_env=conda_env, hours=hours)
     combined_settings.pop('regularizationType')
 
@@ -127,7 +127,7 @@ def declare_jobs(data_pathname, datagen_settings, output_dir, master_job_file, c
     # PINN run
     combined_settings['doResidual'] = [0]
     combined_settings['stateType'] = ['state']
-    combined_settings['regularizationType'] = 'Physics'
+    combined_settings['regularizationType'] = ['Physics']
     all_job_fnames += queue_joblist(combined_settings=combined_settings, shared_settings=shared_settings, output_dir=output_dir, master_job_file=master_job_file, cmd=cmd_py, conda_env=conda_env, hours=hours)
     combined_settings.pop('regularizationType')
 
