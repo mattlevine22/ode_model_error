@@ -1,4 +1,5 @@
 {
+  "regularizationType": "Tikhonov",
   "experimentType": "pathak",
   "t_inv": 100,
   "derivNoiseSD": 0,

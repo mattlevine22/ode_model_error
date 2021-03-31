@@ -294,7 +294,7 @@ class IDK(object):
 			self.set_random_weights()
 			self.continuousInterpRF()
 		elif ('datagrid' in self.costIntegration) or ('Psi' in self.modelType):
-			rf_input, x_output, x_input_descaled = self.get_regression_IO()
+			rf_input, x_output, x_input_descaled, x_output_data, x_output_physics = self.get_regression_IO()
 			if 'GP' in self.modelType:
 				if self.componentWise:
 					raise ValueError('component wise not yet set up for GPR')
@@ -313,7 +313,13 @@ class IDK(object):
 						# allocate, reshape, normalize, and save solutions
 						Q = np.array([self.q_t(rf_input[k,i]) for i in range(rf_input.shape[1])])
 						Z.append(Q.T @ Q)
-						Y.append((Q.T @ x_output[k])[:,None])
+						if self.regularizationType=='Tikhonov':
+							Y.append((Q.T @ x_output[k])[:,None])
+						elif self.regularizationType=='Physics':
+							Y.append( ( Q.T @ (x_output_data[k] + self.regularization_RF*x_output_physics[k]) )[:,None] )
+						else:
+							raise ValueError('self.regularizationType={} not recognized'.format(self.regularizationType))
+
 						self.reg_dim = Q.shape[1]
 					self.Y = np.vstack(Y)
 					self.Z = np.vstack(Z)
@@ -321,7 +327,12 @@ class IDK(object):
 					# allocate, reshape, normalize, and save solutions
 					Q = np.array([self.q_t(rf_input[i]) for i in range(rf_input.shape[0])])
 					self.Z = Q.T @ Q
-					self.Y = Q.T @ x_output
+					if self.regularizationType=='Tikhonov':
+						self.Y = Q.T @ x_output #e.g. residual: (x_output_data - x_output_physics)
+					elif self.regularizationType=='Physics':
+						self.Y = Q.T @ (x_output_data + self.regularization_RF*x_output_physics)
+					else:
+						raise ValueError('self.regularizationType={} not recognized'.format(self.regularizationType))
 					self.reg_dim = self.Z.shape[0]
 
 				self.Z /= x_input_descaled.shape[0]
@@ -836,6 +847,8 @@ class IDK(object):
 
 	def getYZ(self, t_span, k=None):
 		timer_start = time.time()
+		if self.regularizationType=='Physics':
+			raise ValueError('code not yet setup for continuous YZ computation w/ PINN-style regularization')
 		if self.componentWise:
 			y0 = np.zeros(self.rfDim**2 + self.rfDim)
 		else:
@@ -895,26 +908,42 @@ class IDK(object):
 					brf=self.rf_bias_bound,
 					wrf=self.rf_Win_bound))
 
-			# regI = np.identity(self.Z.shape[0])
-			regI = np.identity(self.reg_dim)
-			regI *= self.regularization_RF
+			if self.regularizationType=='Tikhonov':
+				# regI = np.identity(self.Z.shape[0])
+				regI = np.identity(self.reg_dim)
+				regI *= self.regularization_RF
 
-			if self.componentWise:
-				# stack regI K times
-				regI = np.tile(regI,(self.input_dim,1))
+				if self.componentWise:
+					# stack regI K times
+					regI = np.tile(regI,(self.input_dim,1))
 
-			pinv_ = scipypinv2(self.Z + regI)
-			W_out_all = (pinv_ @ self.Y).T
+				pinv_ = scipypinv2(self.Z + regI)
+				W_out_all = (pinv_ @ self.Y).T
+
+				# Compute residuals from inversion
+				res = (self.Z + regI) @ W_out_all.T - self.Y
+				mse = np.mean(res**2)
+				print('Tikhonov-regularized inversion MSE is {mse} with normalized |Wout|={nrm}'.format(
+						mse=mse, nrm=np.mean(W_out_all**2)))
+
+			elif self.regularizationType=='Physics':
+				pinv_ = scipypinv2( self.Z*(1+self.regularization_RF) )
+				W_out_all = (pinv_ @ self.Y).T
+
+				# Compute residuals from inversion
+				res = (self.Z*(1+self.regularization_RF)) @ W_out_all.T - self.Y
+				mse = np.mean(res**2)
+				print('Physics-regularized inversion MSE is {mse} with normalized |Wout|={nrm}'.format(
+						mse=mse, nrm=np.mean(W_out_all**2)))
+
+			else:
+				raise ValueError('regularizationType not recognized!')
+
 			self.W_out_markov = W_out_all
 
 			if do_plots:
 				plotMatrix(self, self.W_out_markov, 'W_out_markov')
 
-			# Compute residuals from inversion
-			res = (self.Z + regI) @ W_out_all.T - self.Y
-			mse = np.mean(res**2)
-			print('Inversion MSE is {mse} with normalized |Wout|={nrm}'.format(
-					mse=mse, nrm=np.mean(W_out_all**2)))
 
 		if do_plots:
 			try:
@@ -936,14 +965,15 @@ class IDK(object):
 		else:
 			raise ValueError('Did not reecognize self.modelType')
 
-		rf_input, x_output, x_input_descaled = self.get_regIO(x_input=x_input, x_output=x_output)
+		rf_input, x_output, x_input_descaled, x_output_data, x_output_physics = self.get_regIO(x_input=x_input, x_output=x_output)
 
-		return rf_input, x_output, x_input_descaled
+		return rf_input, x_output, x_input_descaled, x_output_data, x_output_physics
 
 
 	def get_regIO(self, x_input, x_output=None):
 		x_input_descaled = self.scaler.descaleData(x_input)
 
+		x_output_data = np.copy(x_output)
 		if self.usef0:
 			if 'Psi' in self.modelType:
 				predf0 = self.scaler.scaleData(np.array([self.psi0(x_input_descaled[i]) for i in range(x_input.shape[0])]), reuse=1)
@@ -956,6 +986,10 @@ class IDK(object):
 			if self.doResidual and (x_output is not None):
 				x_output -= predf0
 
+			x_output_physics = np.copy(predf0)
+		else:
+			x_output_physics = 0
+
 		if self.componentWise:
 			rf_input = []
 			for k in range(self.input_dim):
@@ -967,18 +1001,19 @@ class IDK(object):
 			rf_input = np.array(rf_input)
 			if x_output is not None:
 				x_output = x_output.T
+				x_output_data = x_output_data.T
 		else:
 			if self.rf_error_input:
 				rf_input = np.hstack((x_input, predf0))
 			else:
 				rf_input = x_input
 
-		return rf_input, x_output, x_input_descaled
+		return rf_input, x_output, x_input_descaled, x_output_data, x_output_physics
 
 	def plotModel(self):
 		fig_path = os.path.join(self.fig_dir, "model_plot.png")
 
-		rf_input, x_output, x_input_descaled = self.get_regression_IO()
+		rf_input, x_output, x_input_descaled, _ , _ = self.get_regression_IO()
 
 		if not self.componentWise and self.f0_name in ['L63', 'CHUA', 'WATERWHEEL']:
 			if 'GP' in self.modelType:
