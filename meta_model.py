@@ -165,12 +165,11 @@ class IDK(object):
 
 		# Do a hyperparameter optimization using a validation step
 		self.set_fidelity('hifi')
-		if self.validate_rf:
-			# switch to lowfi quadrature for cheap validation runs
 
-			# first learn W, b using default regularization
+		if self.validate_rf and self.validate_regularization and self.validationStyle=='joint':
 			pbounds = {'log_rf_Win_bound': (-2,1.2), #0.01 - 16
-						'log_rf_bias_bound': (-2,1.2)}
+						'log_rf_bias_bound': (-2,1.2),
+						'log_regularization_RF': (-20, 2)}
 			optimizer = BayesianOptimization(f=self.validation_function,
 											pbounds=pbounds,
 											random_state=1)
@@ -188,32 +187,56 @@ class IDK(object):
 			# plot results from validation runs
 			df = optimizer_as_df(optimizer)
 			self.makeValidationPlots(df=df, plot_nm='hyperparams')
+		else:
+			if self.validate_rf:
+				# switch to lowfi quadrature for cheap validation runs
+
+				# first learn W, b using default regularization
+				pbounds = {'log_rf_Win_bound': (-2,1.2), #0.01 - 16
+							'log_rf_bias_bound': (-2,1.2)}
+				optimizer = BayesianOptimization(f=self.validation_function,
+												pbounds=pbounds,
+												random_state=1)
+				log_path = os.path.join(self.logfile_dir, "BayesOpt_log.json")
+				logger = JSONLogger(path=log_path) #conda version doesnt have RESET feature
+				optimizer.subscribe(Events.OPTIMIZATION_STEP, logger)
+				# for log_reg_rf in log_reg_list:
+				# 	optimizer.probe(params={"log_regularization_RF": log_reg_rf}, lazy=True)
+				optimizer.maximize(init_points=5, n_iter=30, acq='ucb')
+				best_param_dict = optimizer.max['params']
+				best_quality = optimizer.max['target']
+				print("Optimal parameters:", best_param_dict, '(quality = {})'.format(best_quality))
+				# re-setup things with optimal parameters (new realization using preferred hyperparams)
+				self.set_BO_keyval(best_param_dict)
+				# plot results from validation runs
+				df = optimizer_as_df(optimizer)
+				self.makeValidationPlots(df=df, plot_nm='hyperparams')
 
 
-		# create Y, Z using chosen RF-parameters
-		self.setup_the_learning()
+			# create Y, Z using chosen RF-parameters
+			self.setup_the_learning()
 
-		# select optimal regularization under the chosen Y, Z
-		if self.validate_regularization:
-			# now fix the optimal W,b and the learned Y,Z... just learn the optimal regularization for the inversion
-			lambda_validation_f = lambda **kwargs: self.validation_function(setup_learning=False, **kwargs)
-			pbounds = {'log_regularization_RF': (-20, 0)}
-			optimizer = BayesianOptimization(f=lambda_validation_f,
-											pbounds=pbounds,
-											random_state=1)
-			log_path = os.path.join(self.logfile_dir, "BayesOpt_reg_log.json")
-			logger = JSONLogger(path=log_path) #conda version doesnt have RESET feature
-			optimizer.subscribe(Events.OPTIMIZATION_STEP, logger)
-			optimizer.probe(params={"log_regularization_RF": np.log10(self.regularization_RF)}, lazy=True)
-			optimizer.maximize(init_points=5, n_iter=30, acq='ucb')
-			best_param_dict = optimizer.max['params']
-			best_quality = optimizer.max['target']
-			print("Optimal parameters:", best_param_dict, '(quality = {})'.format(best_quality))
-			self.set_BO_keyval(best_param_dict)
+			# select optimal regularization under the chosen Y, Z
+			if self.validate_regularization:
+				# now fix the optimal W,b and the learned Y,Z... just learn the optimal regularization for the inversion
+				lambda_validation_f = lambda **kwargs: self.validation_function(setup_learning=False, **kwargs)
+				pbounds = {'log_regularization_RF': (-20, 2)}
+				optimizer = BayesianOptimization(f=lambda_validation_f,
+												pbounds=pbounds,
+												random_state=1)
+				log_path = os.path.join(self.logfile_dir, "BayesOpt_reg_log.json")
+				logger = JSONLogger(path=log_path) #conda version doesnt have RESET feature
+				optimizer.subscribe(Events.OPTIMIZATION_STEP, logger)
+				optimizer.probe(params={"log_regularization_RF": np.log10(self.regularization_RF)}, lazy=True)
+				optimizer.maximize(init_points=5, n_iter=30, acq='ucb')
+				best_param_dict = optimizer.max['params']
+				best_quality = optimizer.max['target']
+				print("Optimal parameters:", best_param_dict, '(quality = {})'.format(best_quality))
+				self.set_BO_keyval(best_param_dict)
 
-			# plot results from validation runs
-			df = optimizer_as_df(optimizer)
-			self.makeValidationPlots(df=df, plot_nm='reg')
+				# plot results from validation runs
+				df = optimizer_as_df(optimizer)
+				self.makeValidationPlots(df=df, plot_nm='reg')
 
 		# solve for the final Y,Z, regI and save
 		self.doNewSolving()
